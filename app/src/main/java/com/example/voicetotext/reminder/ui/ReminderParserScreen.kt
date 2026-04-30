@@ -46,14 +46,14 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
-import com.example.voicetotext.reminder.domain.ReminderIntent
-import com.example.voicetotext.reminder.domain.ReminderParser
+import com.example.voicetotext.action.domain.VoiceAction
+import com.example.voicetotext.action.domain.VoiceActionParser
 import com.example.voicetotext.speech.domain.SpeechRecognizer
 import com.example.voicetotext.ui.theme.VoiceToTextTheme
 
 @Composable
 fun ReminderParserRoute(
-    parser: ReminderParser,
+    parser: VoiceActionParser,
     speechRecognizer: SpeechRecognizer,
     modifier: Modifier = Modifier
 ) {
@@ -426,10 +426,10 @@ private fun ReminderParserScreenPreview() {
                 transcript = "Set a timer for 10 minutes for pasta",
                 resolvedActionTitle = "Set timer for 10 minutes",
                 resolvedActionSubtitle = "Label: pasta",
-                outputJson = ReminderIntent(
-                    title = "Set a timer for 10 minutes for pasta",
-                    datetime = null,
-                    confidence = 0.2
+                outputJson = VoiceAction.SetTimer(
+                    durationSeconds = 600,
+                    label = "pasta",
+                    confidence = 1.0
                 ).toJson()
             ),
             onMicTapped = {},

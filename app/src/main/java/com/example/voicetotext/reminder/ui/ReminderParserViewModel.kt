@@ -1,8 +1,8 @@
 package com.example.voicetotext.reminder.ui
 
 import androidx.lifecycle.ViewModel
-import com.example.voicetotext.reminder.domain.ReminderIntent
-import com.example.voicetotext.reminder.domain.ReminderParser
+import com.example.voicetotext.action.domain.VoiceAction
+import com.example.voicetotext.action.domain.VoiceActionParser
 import com.example.voicetotext.speech.domain.SpeechRecognitionEvent
 import com.example.voicetotext.speech.domain.SpeechRecognizer
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -11,12 +11,12 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 
 class ReminderParserViewModel(
-    private val parser: ReminderParser,
+    private val parser: VoiceActionParser,
     private val speechRecognizer: SpeechRecognizer
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(
-        ReminderParserUiState(outputJson = ReminderIntent.empty().toJson())
+        ReminderParserUiState(outputJson = VoiceAction.empty().toJson())
     )
     val uiState: StateFlow<ReminderParserUiState> = _uiState.asStateFlow()
 
@@ -63,8 +63,8 @@ class ReminderParserViewModel(
         _uiState.update { currentState ->
             currentState.copy(
                 mode = VoiceActionMode.Idle,
-                resolvedActionTitle = "Set timer for 10 minutes",
-                resolvedActionSubtitle = "Label: pasta",
+                resolvedActionTitle = parsedIntent.actionTitle(),
+                resolvedActionSubtitle = parsedIntent.actionSubtitle(),
                 outputJson = parsedIntent.toJson()
             )
         }
@@ -95,7 +95,7 @@ class ReminderParserViewModel(
             } else {
                 "Allow microphone access so voice capture can run fully on-device."
             },
-            outputJson = ReminderIntent.empty().toJson()
+            outputJson = VoiceAction.empty().toJson()
         )
     }
 
@@ -133,8 +133,8 @@ class ReminderParserViewModel(
                     currentState.copy(
                         transcript = event.transcript,
                         mode = VoiceActionMode.Processing,
-                        resolvedActionTitle = "Processing request",
-                        resolvedActionSubtitle = "Resolving the action and parameters from your speech…",
+                        resolvedActionTitle = parsedIntent.actionTitle(),
+                        resolvedActionSubtitle = parsedIntent.actionSubtitle(),
                         outputJson = parsedIntent.toJson()
                     )
                 }
