@@ -6,6 +6,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import com.example.voicetotext.reminder.data.PlaceholderReminderParser
 import com.example.voicetotext.reminder.ui.ReminderParserRoute
+import com.example.voicetotext.speech.data.FakeSpeechRecognizer
 import com.example.voicetotext.ui.theme.VoiceToTextTheme
 
 class MainActivity : ComponentActivity() {
@@ -13,11 +14,13 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         val parser = PlaceholderReminderParser()
+        val speechRecognizer = FakeSpeechRecognizer()
 
         setContent {
             VoiceToTextTheme {
                 ReminderParserRoute(
-                    parser = parser
+                    parser = parser,
+                    speechRecognizer = speechRecognizer
                 )
             }
         }

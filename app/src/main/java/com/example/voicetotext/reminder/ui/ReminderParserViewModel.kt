@@ -3,19 +3,26 @@ package com.example.voicetotext.reminder.ui
 import androidx.lifecycle.ViewModel
 import com.example.voicetotext.reminder.domain.ReminderIntent
 import com.example.voicetotext.reminder.domain.ReminderParser
+import com.example.voicetotext.speech.domain.SpeechRecognitionEvent
+import com.example.voicetotext.speech.domain.SpeechRecognizer
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 
 class ReminderParserViewModel(
-    private val parser: ReminderParser
+    private val parser: ReminderParser,
+    private val speechRecognizer: SpeechRecognizer
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(
         ReminderParserUiState(outputJson = ReminderIntent.empty().toJson())
     )
     val uiState: StateFlow<ReminderParserUiState> = _uiState.asStateFlow()
+
+    init {
+        speechRecognizer.setListener(::onSpeechRecognitionEvent)
+    }
 
     fun onMicrophonePermissionUpdated(isGranted: Boolean) {
         _uiState.update { currentState ->
@@ -40,18 +47,11 @@ class ReminderParserViewModel(
     }
 
     fun onMicTapped() {
-        _uiState.update { currentState ->
-            if (!currentState.hasMicrophonePermission || currentState.mode != VoiceActionMode.Idle) {
-                currentState
-            } else {
-                currentState.copy(
-                    mode = VoiceActionMode.Listening,
-                    transcript = "Listening…",
-                    resolvedActionTitle = "Waiting for your voice",
-                    resolvedActionSubtitle = "Speak naturally. We’ll resolve the action on-device."
-                )
-            }
+        if (!_uiState.value.hasMicrophonePermission || _uiState.value.mode != VoiceActionMode.Idle) {
+            return
         }
+
+        speechRecognizer.startListening()
     }
 
     fun onDemoTranscriptReceived() {
@@ -99,6 +99,7 @@ class ReminderParserViewModel(
     }
 
     fun onResetClicked() {
+        speechRecognizer.stopListening()
         _uiState.value = ReminderParserUiState(
             hasMicrophonePermission = _uiState.value.hasMicrophonePermission,
             resolvedActionTitle = if (_uiState.value.hasMicrophonePermission) {
@@ -113,5 +114,56 @@ class ReminderParserViewModel(
             },
             outputJson = ReminderIntent.empty().toJson()
         )
+    }
+
+    private fun onSpeechRecognitionEvent(event: SpeechRecognitionEvent) {
+        when (event) {
+            SpeechRecognitionEvent.Ready -> {
+                _uiState.update { currentState ->
+                    currentState.copy(
+                        resolvedActionTitle = "Microphone ready",
+                        resolvedActionSubtitle = "Start speaking whenever you're ready."
+                    )
+                }
+            }
+
+            SpeechRecognitionEvent.Listening -> {
+                _uiState.update { currentState ->
+                    currentState.copy(
+                        mode = VoiceActionMode.Listening,
+                        transcript = "Listening…",
+                        resolvedActionTitle = "Waiting for your voice",
+                        resolvedActionSubtitle = "Speak naturally. We’ll resolve the action on-device."
+                    )
+                }
+            }
+
+            is SpeechRecognitionEvent.PartialResult -> {
+                _uiState.update { currentState ->
+                    currentState.copy(transcript = event.transcript)
+                }
+            }
+
+            is SpeechRecognitionEvent.FinalResult -> {
+                _uiState.update { currentState ->
+                    currentState.copy(
+                        transcript = event.transcript,
+                        mode = VoiceActionMode.Processing,
+                        resolvedActionTitle = "Processing request",
+                        resolvedActionSubtitle = "Resolving the action and parameters from your speech…"
+                    )
+                }
+            }
+
+            is SpeechRecognitionEvent.Error -> {
+                _uiState.update { currentState ->
+                    currentState.copy(
+                        mode = VoiceActionMode.Idle,
+                        resolvedActionTitle = "Speech error",
+                        resolvedActionSubtitle = event.message
+                    )
+                }
+            }
+        }
     }
 }

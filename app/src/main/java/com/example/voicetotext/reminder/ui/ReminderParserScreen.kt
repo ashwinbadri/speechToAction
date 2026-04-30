@@ -48,18 +48,23 @@ import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.example.voicetotext.reminder.domain.ReminderIntent
 import com.example.voicetotext.reminder.domain.ReminderParser
+import com.example.voicetotext.speech.domain.SpeechRecognizer
 import com.example.voicetotext.ui.theme.VoiceToTextTheme
 
 @Composable
 fun ReminderParserRoute(
     parser: ReminderParser,
+    speechRecognizer: SpeechRecognizer,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
     val viewModel: ReminderParserViewModel = viewModel(
         factory = viewModelFactory {
             initializer {
-                ReminderParserViewModel(parser = parser)
+                ReminderParserViewModel(
+                    parser = parser,
+                    speechRecognizer = speechRecognizer
+                )
             }
         }
     )

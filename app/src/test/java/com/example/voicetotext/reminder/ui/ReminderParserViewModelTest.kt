@@ -2,6 +2,8 @@ package com.example.voicetotext.reminder.ui
 
 import com.example.voicetotext.reminder.domain.ReminderIntent
 import com.example.voicetotext.reminder.domain.ReminderParser
+import com.example.voicetotext.speech.data.FakeSpeechRecognizer
+import com.example.voicetotext.speech.domain.SpeechRecognitionEvent
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
@@ -9,7 +11,10 @@ class ReminderParserViewModelTest {
 
     @Test
     fun `onMicrophonePermissionUpdated stores granted state`() {
-        val viewModel = ReminderParserViewModel(parser = FakeReminderParser())
+        val viewModel = ReminderParserViewModel(
+            parser = FakeReminderParser(),
+            speechRecognizer = FakeSpeechRecognizer()
+        )
 
         viewModel.onMicrophonePermissionUpdated(true)
 
@@ -18,7 +23,10 @@ class ReminderParserViewModelTest {
 
     @Test
     fun `onMicTapped switches ui into listening mode`() {
-        val viewModel = ReminderParserViewModel(parser = FakeReminderParser())
+        val viewModel = ReminderParserViewModel(
+            parser = FakeReminderParser(),
+            speechRecognizer = FakeSpeechRecognizer()
+        )
         viewModel.onMicrophonePermissionUpdated(true)
 
         viewModel.onMicTapped()
@@ -29,7 +37,10 @@ class ReminderParserViewModelTest {
 
     @Test
     fun `onMicTapped does nothing when permission is missing`() {
-        val viewModel = ReminderParserViewModel(parser = FakeReminderParser())
+        val viewModel = ReminderParserViewModel(
+            parser = FakeReminderParser(),
+            speechRecognizer = FakeSpeechRecognizer()
+        )
 
         viewModel.onMicTapped()
 
@@ -44,8 +55,10 @@ class ReminderParserViewModelTest {
             datetime = null,
             confidence = 0.9
         )
+        val speechRecognizer = FakeSpeechRecognizer()
         val viewModel = ReminderParserViewModel(
-            parser = FakeReminderParser(result = parserResult)
+            parser = FakeReminderParser(result = parserResult),
+            speechRecognizer = speechRecognizer
         )
         viewModel.onMicrophonePermissionUpdated(true)
 
@@ -58,7 +71,10 @@ class ReminderParserViewModelTest {
 
     @Test
     fun `onResetClicked restores idle state`() {
-        val viewModel = ReminderParserViewModel(parser = FakeReminderParser())
+        val viewModel = ReminderParserViewModel(
+            parser = FakeReminderParser(),
+            speechRecognizer = FakeSpeechRecognizer()
+        )
         viewModel.onMicrophonePermissionUpdated(true)
 
         viewModel.onMicTapped()
@@ -68,6 +84,19 @@ class ReminderParserViewModelTest {
         assertEquals("", viewModel.uiState.value.transcript)
         assertEquals(true, viewModel.uiState.value.hasMicrophonePermission)
         assertEquals(ReminderIntent.empty().toJson(), viewModel.uiState.value.outputJson)
+    }
+
+    @Test
+    fun `speech partial result updates transcript`() {
+        val speechRecognizer = FakeSpeechRecognizer()
+        val viewModel = ReminderParserViewModel(
+            parser = FakeReminderParser(),
+            speechRecognizer = speechRecognizer
+        )
+
+        speechRecognizer.emit(SpeechRecognitionEvent.PartialResult("set a timer"))
+
+        assertEquals("set a timer", viewModel.uiState.value.transcript)
     }
 
     private class FakeReminderParser(
