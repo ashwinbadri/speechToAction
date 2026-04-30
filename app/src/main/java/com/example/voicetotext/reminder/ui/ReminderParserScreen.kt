@@ -1,13 +1,17 @@
 package com.example.voicetotext.reminder.ui
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -16,12 +20,13 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -34,7 +39,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
-import com.example.voicetotext.reminder.data.PlaceholderReminderParser
+import com.example.voicetotext.reminder.domain.ReminderIntent
 import com.example.voicetotext.reminder.domain.ReminderParser
 import com.example.voicetotext.ui.theme.VoiceToTextTheme
 
@@ -54,9 +59,11 @@ fun ReminderParserRoute(
 
     ReminderParserScreen(
         uiState = uiState,
-        onInputChanged = viewModel::onInputChanged,
-        onParseClicked = viewModel::onParseClicked,
-        onClearClicked = viewModel::onClearClicked,
+        onMicTapped = viewModel::onMicTapped,
+        onDemoTranscriptReceived = viewModel::onDemoTranscriptReceived,
+        onActionResolved = viewModel::onActionResolved,
+        onRunActionClicked = viewModel::onRunActionClicked,
+        onResetClicked = viewModel::onResetClicked,
         modifier = modifier
     )
 }
@@ -64,18 +71,18 @@ fun ReminderParserRoute(
 @Composable
 fun ReminderParserScreen(
     uiState: ReminderParserUiState,
-    onInputChanged: (String) -> Unit,
-    onParseClicked: () -> Unit,
-    onClearClicked: () -> Unit,
+    onMicTapped: () -> Unit,
+    onDemoTranscriptReceived: () -> Unit,
+    onActionResolved: () -> Unit,
+    onRunActionClicked: () -> Unit,
+    onResetClicked: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Surface(
         modifier = modifier.fillMaxSize(),
         color = Color(0xFFF6F6F2)
     ) {
-        Scaffold(
-            containerColor = Color.Transparent
-        ) { innerPadding ->
+        Scaffold(containerColor = Color.Transparent) { innerPadding ->
             Column(
                 modifier = Modifier
                     .fillMaxSize()
@@ -88,19 +95,23 @@ fun ReminderParserScreen(
                     verticalArrangement = Arrangement.spacedBy(18.dp)
                 ) {
                     Text(
-                        text = "Try a sentence like “Remind me to call mom tomorrow at 7pm”.",
+                        text = "A focused voice action flow for timers and alarms. Tap the mic, speak naturally, then confirm the action.",
                         style = MaterialTheme.typography.bodyLarge,
                         color = Color(0xFF4C4C4C)
                     )
 
-                    OutlinedTextField(
-                        value = uiState.input,
-                        onValueChange = onInputChanged,
-                        modifier = Modifier.fillMaxWidth(),
-                        label = { Text("Reminder request") },
-                        placeholder = { Text("Type or paste a reminder sentence") },
-                        minLines = 4,
-                        shape = RoundedCornerShape(18.dp)
+                    VoiceCaptureCard(
+                        mode = uiState.mode,
+                        transcript = uiState.transcript,
+                        onMicTapped = onMicTapped,
+                        onDemoTranscriptReceived = onDemoTranscriptReceived,
+                        onActionResolved = onActionResolved
+                    )
+
+                    ActionPreviewCard(
+                        title = uiState.resolvedActionTitle,
+                        subtitle = uiState.resolvedActionSubtitle,
+                        isReady = uiState.mode == VoiceActionMode.Idle && uiState.transcript.isNotBlank()
                     )
 
                     Row(
@@ -108,21 +119,22 @@ fun ReminderParserScreen(
                         horizontalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
                         Button(
-                            onClick = onParseClicked,
+                            onClick = onRunActionClicked,
+                            enabled = uiState.mode == VoiceActionMode.Idle && uiState.transcript.isNotBlank(),
                             modifier = Modifier.weight(1f)
                         ) {
-                            Text("Parse")
+                            Text("Run Action")
                         }
 
-                        Button(
-                            onClick = onClearClicked,
+                        OutlinedButton(
+                            onClick = onResetClicked,
                             modifier = Modifier.weight(1f)
                         ) {
-                            Text("Clear")
+                            Text("Reset")
                         }
                     }
 
-                    ResultCard(output = uiState.outputJson)
+                    DebugCard(output = uiState.outputJson)
                 }
             }
         }
@@ -144,13 +156,13 @@ private fun Header() {
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text(
-                text = "Voice Reminder Parser",
+                text = "Voice Time Actions",
                 style = MaterialTheme.typography.headlineMedium,
                 fontWeight = FontWeight.Bold,
                 color = Color.White
             )
             Text(
-                text = "Turn a voice assistant sentence into structured JSON.",
+                text = "Hands-free timers and alarms, resolved on-device and ready to run.",
                 style = MaterialTheme.typography.bodyLarge,
                 color = Color.White.copy(alpha = 0.9f)
             )
@@ -159,7 +171,98 @@ private fun Header() {
 }
 
 @Composable
-private fun ResultCard(output: String) {
+private fun VoiceCaptureCard(
+    mode: VoiceActionMode,
+    transcript: String,
+    onMicTapped: () -> Unit,
+    onDemoTranscriptReceived: () -> Unit,
+    onActionResolved: () -> Unit
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White)
+    ) {
+        Column(
+            modifier = Modifier.padding(20.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Box(
+                modifier = Modifier.fillMaxWidth(),
+                contentAlignment = Alignment.Center
+            ) {
+                Button(
+                    onClick = onMicTapped,
+                    enabled = mode == VoiceActionMode.Idle,
+                    modifier = Modifier.size(88.dp),
+                    shape = RoundedCornerShape(28.dp)
+                ) {
+                    Text(
+                        text = "Mic",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
+
+            Text(
+                text = when (mode) {
+                    VoiceActionMode.Idle -> "Tap to speak"
+                    VoiceActionMode.Listening -> "Listening"
+                    VoiceActionMode.Processing -> "Processing"
+                },
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            Card(
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = Color(0xFFF8FAFC)),
+                modifier = Modifier.border(
+                    width = 1.dp,
+                    color = Color(0xFFD9E2EC),
+                    shape = RoundedCornerShape(16.dp)
+                )
+            ) {
+                Text(
+                    text = if (transcript.isBlank()) "Your transcript will appear here." else transcript,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = Color(0xFF1F2937)
+                )
+            }
+
+            if (mode == VoiceActionMode.Listening) {
+                OutlinedButton(
+                    onClick = onDemoTranscriptReceived,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("Simulate Transcript")
+                }
+            }
+
+            if (mode == VoiceActionMode.Processing) {
+                Button(
+                    onClick = onActionResolved,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("Resolve Action")
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ActionPreviewCard(
+    title: String,
+    subtitle: String,
+    isReady: Boolean
+) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(20.dp),
@@ -170,11 +273,61 @@ private fun ResultCard(output: String) {
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             Text(
-                text = "JSON Output",
+                text = "Resolved Action",
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.SemiBold
             )
 
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+                color = Color(0xFF111827)
+            )
+
+            Text(
+                text = subtitle,
+                style = MaterialTheme.typography.bodyLarge,
+                color = Color(0xFF4B5563)
+            )
+
+            Spacer(modifier = Modifier.height(4.dp))
+
+            Text(
+                text = if (isReady) {
+                    "Ready to execute once you confirm."
+                } else {
+                    "We’ll show the final action here after voice capture finishes."
+                },
+                style = MaterialTheme.typography.bodySmall,
+                color = Color(0xFF6B7280)
+            )
+        }
+    }
+}
+
+@Composable
+private fun DebugCard(output: String) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(containerColor = Color(0xFFFCFCFD))
+    ) {
+        Column(
+            modifier = Modifier.padding(20.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            Text(
+                text = "Debug Details",
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.SemiBold,
+                color = Color(0xFF475467)
+            )
+            Text(
+                text = "Raw parser output stays tucked away so the primary experience remains action-first.",
+                style = MaterialTheme.typography.bodySmall,
+                color = Color(0xFF667085)
+            )
             Card(
                 shape = RoundedCornerShape(16.dp),
                 colors = CardDefaults.cardColors(containerColor = Color(0xFF111827))
@@ -189,13 +342,6 @@ private fun ResultCard(output: String) {
                     color = Color(0xFFE5EEF7)
                 )
             }
-
-            Text(
-                text = "This step uses a placeholder parser so the MVVM structure is ready for real intent parsing next.",
-                style = MaterialTheme.typography.bodySmall,
-                color = Color(0xFF666666),
-                textAlign = TextAlign.Start
-            )
         }
     }
 }
@@ -206,11 +352,20 @@ private fun ReminderParserScreenPreview() {
     VoiceToTextTheme {
         ReminderParserScreen(
             uiState = ReminderParserUiState(
-                input = "Remind me to call mom tomorrow at 7pm"
+                transcript = "Set a timer for 10 minutes for pasta",
+                resolvedActionTitle = "Set timer for 10 minutes",
+                resolvedActionSubtitle = "Label: pasta",
+                outputJson = ReminderIntent(
+                    title = "Set a timer for 10 minutes for pasta",
+                    datetime = null,
+                    confidence = 0.2
+                ).toJson()
             ),
-            onInputChanged = {},
-            onParseClicked = {},
-            onClearClicked = {}
+            onMicTapped = {},
+            onDemoTranscriptReceived = {},
+            onActionResolved = {},
+            onRunActionClicked = {},
+            onResetClicked = {}
         )
     }
 }

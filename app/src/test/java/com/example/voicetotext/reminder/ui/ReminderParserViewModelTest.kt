@@ -8,48 +8,42 @@ import org.junit.Test
 class ReminderParserViewModelTest {
 
     @Test
-    fun `onInputChanged updates input state`() {
+    fun `onMicTapped switches ui into listening mode`() {
         val viewModel = ReminderParserViewModel(parser = FakeReminderParser())
 
-        viewModel.onInputChanged("buy groceries")
+        viewModel.onMicTapped()
 
-        assertEquals("buy groceries", viewModel.uiState.value.input)
+        assertEquals(VoiceActionMode.Listening, viewModel.uiState.value.mode)
+        assertEquals("Listening…", viewModel.uiState.value.transcript)
     }
 
     @Test
-    fun `onParseClicked updates output json from parser result`() {
+    fun `onDemoTranscriptReceived updates transcript and output json`() {
         val parserResult = ReminderIntent(
-            title = "call mom",
-            datetime = "2026-05-01T19:00:00",
+            title = "timer pasta",
+            datetime = null,
             confidence = 0.9
         )
         val viewModel = ReminderParserViewModel(
             parser = FakeReminderParser(result = parserResult)
         )
 
-        viewModel.onInputChanged("Remind me to call mom tomorrow at 7pm")
-        viewModel.onParseClicked()
+        viewModel.onDemoTranscriptReceived()
 
+        assertEquals(VoiceActionMode.Processing, viewModel.uiState.value.mode)
+        assertEquals("Set a timer for 10 minutes for pasta", viewModel.uiState.value.transcript)
         assertEquals(parserResult.toJson(), viewModel.uiState.value.outputJson)
     }
 
     @Test
-    fun `onClearClicked resets input and output`() {
-        val viewModel = ReminderParserViewModel(
-            parser = FakeReminderParser(
-                result = ReminderIntent(
-                    title = "call mom",
-                    datetime = null,
-                    confidence = 0.2
-                )
-            )
-        )
+    fun `onResetClicked restores idle state`() {
+        val viewModel = ReminderParserViewModel(parser = FakeReminderParser())
 
-        viewModel.onInputChanged("call mom")
-        viewModel.onParseClicked()
-        viewModel.onClearClicked()
+        viewModel.onMicTapped()
+        viewModel.onResetClicked()
 
-        assertEquals("", viewModel.uiState.value.input)
+        assertEquals(VoiceActionMode.Idle, viewModel.uiState.value.mode)
+        assertEquals("", viewModel.uiState.value.transcript)
         assertEquals(ReminderIntent.empty().toJson(), viewModel.uiState.value.outputJson)
     }
 

@@ -1,8 +1,15 @@
 package com.example.voicetotext.reminder.ui
 
-import com.example.voicetotext.reminder.domain.ReminderIntent
-
 data class ReminderParserUiState(
-    val input: String = "",
-    val outputJson: String = ReminderIntent.empty().toJson()
+    val mode: VoiceActionMode = VoiceActionMode.Idle,
+    val transcript: String = "",
+    val resolvedActionTitle: String = "No action yet",
+    val resolvedActionSubtitle: String = "Tap the mic and say something like “set a timer for 10 minutes”.",
+    val outputJson: String = ""
 )
+
+enum class VoiceActionMode {
+    Idle,
+    Listening,
+    Processing
+}
