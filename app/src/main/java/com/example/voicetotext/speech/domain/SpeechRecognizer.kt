@@ -6,4 +6,6 @@ interface SpeechRecognizer {
     fun startListening()
 
     fun stopListening()
+
+    fun destroy()
 }

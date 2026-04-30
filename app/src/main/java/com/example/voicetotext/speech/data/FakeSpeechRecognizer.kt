@@ -20,6 +20,10 @@ class FakeSpeechRecognizer : SpeechRecognizer {
         // No-op in the fake implementation until the Android recognizer is wired in.
     }
 
+    override fun destroy() {
+        // No-op in tests and previews.
+    }
+
     fun emit(event: SpeechRecognitionEvent) {
         listener?.invoke(event)
     }
