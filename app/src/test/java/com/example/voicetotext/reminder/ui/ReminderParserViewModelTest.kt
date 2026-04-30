@@ -49,7 +49,7 @@ class ReminderParserViewModelTest {
     }
 
     @Test
-    fun `onDemoTranscriptReceived updates transcript and output json`() {
+    fun `speech final result updates transcript and output json`() {
         val parserResult = ReminderIntent(
             title = "timer pasta",
             datetime = null,
@@ -62,7 +62,9 @@ class ReminderParserViewModelTest {
         )
         viewModel.onMicrophonePermissionUpdated(true)
 
-        viewModel.onDemoTranscriptReceived()
+        speechRecognizer.emit(
+            SpeechRecognitionEvent.FinalResult("Set a timer for 10 minutes for pasta")
+        )
 
         assertEquals(VoiceActionMode.Processing, viewModel.uiState.value.mode)
         assertEquals("Set a timer for 10 minutes for pasta", viewModel.uiState.value.transcript)

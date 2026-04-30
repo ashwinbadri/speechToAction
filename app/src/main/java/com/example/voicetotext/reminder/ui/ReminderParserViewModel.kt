@@ -54,23 +54,6 @@ class ReminderParserViewModel(
         speechRecognizer.startListening()
     }
 
-    fun onDemoTranscriptReceived() {
-        if (!_uiState.value.hasMicrophonePermission) return
-
-        val transcript = "Set a timer for 10 minutes for pasta"
-        val parsedIntent = parser.parse(transcript)
-
-        _uiState.update { currentState ->
-            currentState.copy(
-                mode = VoiceActionMode.Processing,
-                transcript = transcript,
-                resolvedActionTitle = "Processing request",
-                resolvedActionSubtitle = "Resolving the action and parameters from your speech…",
-                outputJson = parsedIntent.toJson()
-            )
-        }
-    }
-
     fun onActionResolved() {
         if (!_uiState.value.hasMicrophonePermission) return
 
@@ -145,12 +128,14 @@ class ReminderParserViewModel(
             }
 
             is SpeechRecognitionEvent.FinalResult -> {
+                val parsedIntent = parser.parse(event.transcript)
                 _uiState.update { currentState ->
                     currentState.copy(
                         transcript = event.transcript,
                         mode = VoiceActionMode.Processing,
                         resolvedActionTitle = "Processing request",
-                        resolvedActionSubtitle = "Resolving the action and parameters from your speech…"
+                        resolvedActionSubtitle = "Resolving the action and parameters from your speech…",
+                        outputJson = parsedIntent.toJson()
                     )
                 }
             }

@@ -89,7 +89,6 @@ fun ReminderParserRoute(
         onRequestMicrophonePermission = {
             microphonePermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
         },
-        onDemoTranscriptReceived = viewModel::onDemoTranscriptReceived,
         onActionResolved = viewModel::onActionResolved,
         onRunActionClicked = viewModel::onRunActionClicked,
         onResetClicked = viewModel::onResetClicked,
@@ -102,7 +101,6 @@ fun ReminderParserScreen(
     uiState: ReminderParserUiState,
     onMicTapped: () -> Unit,
     onRequestMicrophonePermission: () -> Unit,
-    onDemoTranscriptReceived: () -> Unit,
     onActionResolved: () -> Unit,
     onRunActionClicked: () -> Unit,
     onResetClicked: () -> Unit,
@@ -136,7 +134,6 @@ fun ReminderParserScreen(
                         transcript = uiState.transcript,
                         onMicTapped = onMicTapped,
                         onRequestMicrophonePermission = onRequestMicrophonePermission,
-                        onDemoTranscriptReceived = onDemoTranscriptReceived,
                         onActionResolved = onActionResolved
                     )
 
@@ -213,7 +210,6 @@ private fun VoiceCaptureCard(
     transcript: String,
     onMicTapped: () -> Unit,
     onRequestMicrophonePermission: () -> Unit,
-    onDemoTranscriptReceived: () -> Unit,
     onActionResolved: () -> Unit
 ) {
     Card(
@@ -277,15 +273,6 @@ private fun VoiceCaptureCard(
                     style = MaterialTheme.typography.bodyLarge,
                     color = Color(0xFF1F2937)
                 )
-            }
-
-            if (mode == VoiceActionMode.Listening) {
-                OutlinedButton(
-                    onClick = onDemoTranscriptReceived,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text("Simulate Transcript")
-                }
             }
 
             if (mode == VoiceActionMode.Processing) {
@@ -447,7 +434,6 @@ private fun ReminderParserScreenPreview() {
             ),
             onMicTapped = {},
             onRequestMicrophonePermission = {},
-            onDemoTranscriptReceived = {},
             onActionResolved = {},
             onRunActionClicked = {},
             onResetClicked = {}
