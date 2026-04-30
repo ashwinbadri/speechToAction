@@ -13,14 +13,6 @@ class AndroidSpeechRecognizer(
 ) : com.example.voicetotext.speech.domain.SpeechRecognizer {
 
     private var listener: ((SpeechRecognitionEvent) -> Unit)? = null
-    private val speechRecognizer: SpeechRecognizer? =
-        if (SpeechRecognizer.isRecognitionAvailable(context)) {
-            SpeechRecognizer.createSpeechRecognizer(context).apply {
-                setRecognitionListener(recognitionListener)
-            }
-        } else {
-            null
-        }
 
     override fun setListener(listener: (SpeechRecognitionEvent) -> Unit) {
         this.listener = listener
@@ -105,4 +97,13 @@ class AndroidSpeechRecognizer(
             ?.trim()
             ?.takeIf { it.isNotEmpty() }
     }
+
+    private val speechRecognizer: SpeechRecognizer? =
+        if (SpeechRecognizer.isRecognitionAvailable(context)) {
+            SpeechRecognizer.createSpeechRecognizer(context).apply {
+                setRecognitionListener(recognitionListener)
+            }
+        } else {
+            null
+        }
 }
