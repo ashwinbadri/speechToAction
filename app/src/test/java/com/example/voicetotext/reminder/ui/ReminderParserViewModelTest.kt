@@ -8,13 +8,33 @@ import org.junit.Test
 class ReminderParserViewModelTest {
 
     @Test
+    fun `onMicrophonePermissionUpdated stores granted state`() {
+        val viewModel = ReminderParserViewModel(parser = FakeReminderParser())
+
+        viewModel.onMicrophonePermissionUpdated(true)
+
+        assertEquals(true, viewModel.uiState.value.hasMicrophonePermission)
+    }
+
+    @Test
     fun `onMicTapped switches ui into listening mode`() {
         val viewModel = ReminderParserViewModel(parser = FakeReminderParser())
+        viewModel.onMicrophonePermissionUpdated(true)
 
         viewModel.onMicTapped()
 
         assertEquals(VoiceActionMode.Listening, viewModel.uiState.value.mode)
         assertEquals("Listening…", viewModel.uiState.value.transcript)
+    }
+
+    @Test
+    fun `onMicTapped does nothing when permission is missing`() {
+        val viewModel = ReminderParserViewModel(parser = FakeReminderParser())
+
+        viewModel.onMicTapped()
+
+        assertEquals(VoiceActionMode.Idle, viewModel.uiState.value.mode)
+        assertEquals(false, viewModel.uiState.value.hasMicrophonePermission)
     }
 
     @Test
@@ -27,6 +47,7 @@ class ReminderParserViewModelTest {
         val viewModel = ReminderParserViewModel(
             parser = FakeReminderParser(result = parserResult)
         )
+        viewModel.onMicrophonePermissionUpdated(true)
 
         viewModel.onDemoTranscriptReceived()
 
@@ -38,12 +59,14 @@ class ReminderParserViewModelTest {
     @Test
     fun `onResetClicked restores idle state`() {
         val viewModel = ReminderParserViewModel(parser = FakeReminderParser())
+        viewModel.onMicrophonePermissionUpdated(true)
 
         viewModel.onMicTapped()
         viewModel.onResetClicked()
 
         assertEquals(VoiceActionMode.Idle, viewModel.uiState.value.mode)
         assertEquals("", viewModel.uiState.value.transcript)
+        assertEquals(true, viewModel.uiState.value.hasMicrophonePermission)
         assertEquals(ReminderIntent.empty().toJson(), viewModel.uiState.value.outputJson)
     }
 

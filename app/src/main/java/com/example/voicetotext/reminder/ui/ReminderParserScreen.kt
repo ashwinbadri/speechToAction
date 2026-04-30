@@ -1,5 +1,9 @@
 package com.example.voicetotext.reminder.ui
 
+import android.Manifest
+import android.content.pm.PackageManager
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -25,16 +29,19 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.viewmodel.initializer
@@ -48,6 +55,7 @@ fun ReminderParserRoute(
     parser: ReminderParser,
     modifier: Modifier = Modifier
 ) {
+    val context = LocalContext.current
     val viewModel: ReminderParserViewModel = viewModel(
         factory = viewModelFactory {
             initializer {
@@ -56,10 +64,26 @@ fun ReminderParserRoute(
         }
     )
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val microphonePermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        viewModel.onMicrophonePermissionUpdated(isGranted)
+    }
+
+    LaunchedEffect(context) {
+        val isGranted = ContextCompat.checkSelfPermission(
+            context,
+            Manifest.permission.RECORD_AUDIO
+        ) == PackageManager.PERMISSION_GRANTED
+        viewModel.onMicrophonePermissionUpdated(isGranted)
+    }
 
     ReminderParserScreen(
         uiState = uiState,
         onMicTapped = viewModel::onMicTapped,
+        onRequestMicrophonePermission = {
+            microphonePermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
+        },
         onDemoTranscriptReceived = viewModel::onDemoTranscriptReceived,
         onActionResolved = viewModel::onActionResolved,
         onRunActionClicked = viewModel::onRunActionClicked,
@@ -72,6 +96,7 @@ fun ReminderParserRoute(
 fun ReminderParserScreen(
     uiState: ReminderParserUiState,
     onMicTapped: () -> Unit,
+    onRequestMicrophonePermission: () -> Unit,
     onDemoTranscriptReceived: () -> Unit,
     onActionResolved: () -> Unit,
     onRunActionClicked: () -> Unit,
@@ -101,9 +126,11 @@ fun ReminderParserScreen(
                     )
 
                     VoiceCaptureCard(
+                        hasMicrophonePermission = uiState.hasMicrophonePermission,
                         mode = uiState.mode,
                         transcript = uiState.transcript,
                         onMicTapped = onMicTapped,
+                        onRequestMicrophonePermission = onRequestMicrophonePermission,
                         onDemoTranscriptReceived = onDemoTranscriptReceived,
                         onActionResolved = onActionResolved
                     )
@@ -111,7 +138,9 @@ fun ReminderParserScreen(
                     ActionPreviewCard(
                         title = uiState.resolvedActionTitle,
                         subtitle = uiState.resolvedActionSubtitle,
-                        isReady = uiState.mode == VoiceActionMode.Idle && uiState.transcript.isNotBlank()
+                        isReady = uiState.hasMicrophonePermission &&
+                            uiState.mode == VoiceActionMode.Idle &&
+                            uiState.transcript.isNotBlank()
                     )
 
                     Row(
@@ -120,7 +149,9 @@ fun ReminderParserScreen(
                     ) {
                         Button(
                             onClick = onRunActionClicked,
-                            enabled = uiState.mode == VoiceActionMode.Idle && uiState.transcript.isNotBlank(),
+                            enabled = uiState.hasMicrophonePermission &&
+                                uiState.mode == VoiceActionMode.Idle &&
+                                uiState.transcript.isNotBlank(),
                             modifier = Modifier.weight(1f)
                         ) {
                             Text("Run Action")
@@ -172,9 +203,11 @@ private fun Header() {
 
 @Composable
 private fun VoiceCaptureCard(
+    hasMicrophonePermission: Boolean,
     mode: VoiceActionMode,
     transcript: String,
     onMicTapped: () -> Unit,
+    onRequestMicrophonePermission: () -> Unit,
     onDemoTranscriptReceived: () -> Unit,
     onActionResolved: () -> Unit
 ) {
@@ -187,6 +220,11 @@ private fun VoiceCaptureCard(
             modifier = Modifier.padding(20.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
+            if (!hasMicrophonePermission) {
+                PermissionPromptCard(onRequestMicrophonePermission = onRequestMicrophonePermission)
+                return@Column
+            }
+
             Box(
                 modifier = Modifier.fillMaxWidth(),
                 contentAlignment = Alignment.Center
@@ -252,6 +290,46 @@ private fun VoiceCaptureCard(
                 ) {
                     Text("Resolve Action")
                 }
+            }
+        }
+    }
+}
+
+@Composable
+private fun PermissionPromptCard(
+    onRequestMicrophonePermission: () -> Unit
+) {
+    Card(
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = Color(0xFFF8FAFC)),
+        modifier = Modifier.border(
+            width = 1.dp,
+            color = Color(0xFFD9E2EC),
+            shape = RoundedCornerShape(16.dp)
+        )
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            Text(
+                text = "Microphone access needed",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold,
+                color = Color(0xFF111827)
+            )
+            Text(
+                text = "Allow microphone access to capture speech on-device and turn it into time actions.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = Color(0xFF4B5563)
+            )
+            Button(
+                onClick = onRequestMicrophonePermission,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Enable Microphone")
             }
         }
     }
@@ -352,6 +430,7 @@ private fun ReminderParserScreenPreview() {
     VoiceToTextTheme {
         ReminderParserScreen(
             uiState = ReminderParserUiState(
+                hasMicrophonePermission = true,
                 transcript = "Set a timer for 10 minutes for pasta",
                 resolvedActionTitle = "Set timer for 10 minutes",
                 resolvedActionSubtitle = "Label: pasta",
@@ -362,6 +441,7 @@ private fun ReminderParserScreenPreview() {
                 ).toJson()
             ),
             onMicTapped = {},
+            onRequestMicrophonePermission = {},
             onDemoTranscriptReceived = {},
             onActionResolved = {},
             onRunActionClicked = {},

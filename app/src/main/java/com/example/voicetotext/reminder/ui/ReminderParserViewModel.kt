@@ -17,9 +17,31 @@ class ReminderParserViewModel(
     )
     val uiState: StateFlow<ReminderParserUiState> = _uiState.asStateFlow()
 
+    fun onMicrophonePermissionUpdated(isGranted: Boolean) {
+        _uiState.update { currentState ->
+            currentState.copy(
+                hasMicrophonePermission = isGranted,
+                resolvedActionTitle = if (isGranted) {
+                    if (currentState.transcript.isBlank()) "No action yet" else currentState.resolvedActionTitle
+                } else {
+                    "Microphone access required"
+                },
+                resolvedActionSubtitle = if (isGranted) {
+                    if (currentState.transcript.isBlank()) {
+                        "Tap the mic and say something like “set a timer for 10 minutes”."
+                    } else {
+                        currentState.resolvedActionSubtitle
+                    }
+                } else {
+                    "Allow microphone access so voice capture can run fully on-device."
+                }
+            )
+        }
+    }
+
     fun onMicTapped() {
         _uiState.update { currentState ->
-            if (currentState.mode != VoiceActionMode.Idle) {
+            if (!currentState.hasMicrophonePermission || currentState.mode != VoiceActionMode.Idle) {
                 currentState
             } else {
                 currentState.copy(
@@ -33,6 +55,8 @@ class ReminderParserViewModel(
     }
 
     fun onDemoTranscriptReceived() {
+        if (!_uiState.value.hasMicrophonePermission) return
+
         val transcript = "Set a timer for 10 minutes for pasta"
         val parsedIntent = parser.parse(transcript)
 
@@ -48,6 +72,8 @@ class ReminderParserViewModel(
     }
 
     fun onActionResolved() {
+        if (!_uiState.value.hasMicrophonePermission) return
+
         val transcript = _uiState.value.transcript
         val parsedIntent = parser.parse(transcript)
 
@@ -62,6 +88,8 @@ class ReminderParserViewModel(
     }
 
     fun onRunActionClicked() {
+        if (!_uiState.value.hasMicrophonePermission) return
+
         _uiState.update { currentState ->
             currentState.copy(
                 resolvedActionTitle = "Ready to run timer",
@@ -72,6 +100,17 @@ class ReminderParserViewModel(
 
     fun onResetClicked() {
         _uiState.value = ReminderParserUiState(
+            hasMicrophonePermission = _uiState.value.hasMicrophonePermission,
+            resolvedActionTitle = if (_uiState.value.hasMicrophonePermission) {
+                "No action yet"
+            } else {
+                "Microphone access required"
+            },
+            resolvedActionSubtitle = if (_uiState.value.hasMicrophonePermission) {
+                "Tap the mic and say something like “set a timer for 10 minutes”."
+            } else {
+                "Allow microphone access so voice capture can run fully on-device."
+            },
             outputJson = ReminderIntent.empty().toJson()
         )
     }
