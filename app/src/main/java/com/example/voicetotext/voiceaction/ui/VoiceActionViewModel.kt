@@ -121,6 +121,8 @@ class VoiceActionViewModel(
             SpeechRecognitionEvent.Ready -> {
                 _uiState.update { currentState ->
                     currentState.copy(
+                        mode = VoiceActionMode.Listening,
+                        transcript = if (currentState.transcript.isBlank()) "Listening…" else currentState.transcript,
                         resolvedActionTitle = "Microphone ready",
                         resolvedActionSubtitle = "Start speaking whenever you're ready."
                     )
