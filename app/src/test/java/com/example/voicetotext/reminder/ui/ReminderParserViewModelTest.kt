@@ -4,10 +4,26 @@ import com.example.voicetotext.action.domain.VoiceAction
 import com.example.voicetotext.action.domain.VoiceActionParser
 import com.example.voicetotext.speech.data.FakeSpeechRecognizer
 import com.example.voicetotext.speech.domain.SpeechRecognitionEvent
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.cancel
 import org.junit.Assert.assertEquals
+import org.junit.Rule
 import org.junit.Test
+import org.junit.rules.TestWatcher
+import org.junit.runner.Description
+import kotlinx.coroutines.test.StandardTestDispatcher
+import kotlinx.coroutines.test.TestDispatcher
+import kotlinx.coroutines.test.advanceUntilIdle
+import kotlinx.coroutines.test.resetMain
+import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.test.setMain
 
+@OptIn(ExperimentalCoroutinesApi::class)
 class ReminderParserViewModelTest {
+
+    @get:Rule
+    val mainDispatcherRule = MainDispatcherRule()
 
     @Test
     fun `onMicrophonePermissionUpdated stores granted state`() {
@@ -49,7 +65,7 @@ class ReminderParserViewModelTest {
     }
 
     @Test
-    fun `speech final result updates transcript and output json`() {
+    fun `speech final result updates transcript and output json`() = runTest {
         val parserResult = VoiceAction.SetTimer(
             durationSeconds = 600,
             label = "pasta",
@@ -65,6 +81,7 @@ class ReminderParserViewModelTest {
         speechRecognizer.emit(
             SpeechRecognitionEvent.FinalResult("Set a timer for 10 minutes for pasta")
         )
+        advanceUntilIdle()
 
         assertEquals(VoiceActionMode.Processing, viewModel.uiState.value.mode)
         assertEquals("Set a timer for 10 minutes for pasta", viewModel.uiState.value.transcript)
@@ -106,6 +123,20 @@ class ReminderParserViewModelTest {
     private class FakeVoiceActionParser(
         private val result: VoiceAction = VoiceAction.empty()
     ) : VoiceActionParser {
-        override fun parse(input: String): VoiceAction = result
+        override suspend fun parse(input: String): VoiceAction = result
+    }
+}
+
+@OptIn(ExperimentalCoroutinesApi::class)
+class MainDispatcherRule(
+    private val dispatcher: TestDispatcher = StandardTestDispatcher()
+) : TestWatcher() {
+
+    override fun starting(description: Description) {
+        Dispatchers.setMain(dispatcher)
+    }
+
+    override fun finished(description: Description) {
+        Dispatchers.resetMain()
     }
 }

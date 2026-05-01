@@ -6,7 +6,7 @@ import java.util.Locale
 
 class TimerVoiceActionParser : VoiceActionParser {
 
-    override fun parse(input: String): VoiceAction {
+    override suspend fun parse(input: String): VoiceAction {
         val normalizedInput = input.trim()
         if (normalizedInput.isBlank()) return VoiceAction.empty()
 

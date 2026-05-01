@@ -1,6 +1,7 @@
 package com.example.voicetotext.reminder.ui
 
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import com.example.voicetotext.action.domain.VoiceAction
 import com.example.voicetotext.action.domain.VoiceActionParser
 import com.example.voicetotext.speech.domain.SpeechRecognitionEvent
@@ -9,6 +10,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
 
 class ReminderParserViewModel(
     private val parser: VoiceActionParser,
@@ -58,16 +60,7 @@ class ReminderParserViewModel(
         if (!_uiState.value.hasMicrophonePermission) return
 
         val transcript = _uiState.value.transcript
-        val parsedIntent = parser.parse(transcript)
-
-        _uiState.update { currentState ->
-            currentState.copy(
-                mode = VoiceActionMode.Idle,
-                resolvedActionTitle = parsedIntent.actionTitle(),
-                resolvedActionSubtitle = parsedIntent.actionSubtitle(),
-                outputJson = parsedIntent.toJson()
-            )
-        }
+        parseTranscript(transcript, setModeToProcessing = false)
     }
 
     fun onRunActionClicked() {
@@ -128,16 +121,15 @@ class ReminderParserViewModel(
             }
 
             is SpeechRecognitionEvent.FinalResult -> {
-                val parsedIntent = parser.parse(event.transcript)
                 _uiState.update { currentState ->
                     currentState.copy(
                         transcript = event.transcript,
                         mode = VoiceActionMode.Processing,
-                        resolvedActionTitle = parsedIntent.actionTitle(),
-                        resolvedActionSubtitle = parsedIntent.actionSubtitle(),
-                        outputJson = parsedIntent.toJson()
+                        resolvedActionTitle = "Processing request",
+                        resolvedActionSubtitle = "Resolving the action and parameters from your speech…"
                     )
                 }
+                parseTranscript(event.transcript, setModeToProcessing = true)
             }
 
             is SpeechRecognitionEvent.Error -> {
@@ -148,6 +140,23 @@ class ReminderParserViewModel(
                         resolvedActionSubtitle = event.message
                     )
                 }
+            }
+        }
+    }
+
+    private fun parseTranscript(
+        transcript: String,
+        setModeToProcessing: Boolean
+    ) {
+        viewModelScope.launch {
+            val parsedAction = parser.parse(transcript)
+            _uiState.update { currentState ->
+                currentState.copy(
+                    mode = if (setModeToProcessing) VoiceActionMode.Processing else VoiceActionMode.Idle,
+                    resolvedActionTitle = parsedAction.actionTitle(),
+                    resolvedActionSubtitle = parsedAction.actionSubtitle(),
+                    outputJson = parsedAction.toJson()
+                )
             }
         }
     }
