@@ -1,9 +1,9 @@
-package com.example.voicetotext.reminder.ui
+package com.example.voicetotext.voiceaction.ui
 
 import com.example.voicetotext.action.domain.ExecutionResult
 import com.example.voicetotext.action.domain.VoiceAction
 
-data class ReminderParserUiState(
+data class VoiceActionUiState(
     val hasMicrophonePermission: Boolean = false,
     val mode: VoiceActionMode = VoiceActionMode.Idle,
     val transcript: String = "",

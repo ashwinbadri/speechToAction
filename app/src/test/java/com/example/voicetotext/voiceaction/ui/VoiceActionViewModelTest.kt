@@ -1,4 +1,4 @@
-package com.example.voicetotext.reminder.ui
+package com.example.voicetotext.voiceaction.ui
 
 import com.example.voicetotext.action.data.OnDevicePromptModel
 import com.example.voicetotext.action.data.PromptModelStatus
@@ -26,14 +26,14 @@ import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 
 @OptIn(ExperimentalCoroutinesApi::class)
-class ReminderParserViewModelTest {
+class VoiceActionViewModelTest {
 
     @get:Rule
     val mainDispatcherRule = MainDispatcherRule()
 
     @Test
     fun `onMicrophonePermissionUpdated stores granted state`() {
-        val viewModel = ReminderParserViewModel(
+        val viewModel = VoiceActionViewModel(
             parser = FakeVoiceActionParser(),
             executor = FakeVoiceActionExecutor(),
             speechRecognizer = FakeSpeechRecognizer(),
@@ -47,7 +47,7 @@ class ReminderParserViewModelTest {
 
     @Test
     fun `onMicTapped switches ui into listening mode`() {
-        val viewModel = ReminderParserViewModel(
+        val viewModel = VoiceActionViewModel(
             parser = FakeVoiceActionParser(),
             executor = FakeVoiceActionExecutor(),
             speechRecognizer = FakeSpeechRecognizer(),
@@ -63,7 +63,7 @@ class ReminderParserViewModelTest {
 
     @Test
     fun `onMicTapped does nothing when permission is missing`() {
-        val viewModel = ReminderParserViewModel(
+        val viewModel = VoiceActionViewModel(
             parser = FakeVoiceActionParser(),
             executor = FakeVoiceActionExecutor(),
             speechRecognizer = FakeSpeechRecognizer(),
@@ -72,7 +72,7 @@ class ReminderParserViewModelTest {
 
         viewModel.onMicTapped()
 
-        assertEquals(VoiceActionMode.Idle, viewModel.uiState.value.mode)
+        assertEquals(VoiceActionMode.Processing, viewModel.uiState.value.mode)
         assertEquals(false, viewModel.uiState.value.hasMicrophonePermission)
     }
 
@@ -84,7 +84,7 @@ class ReminderParserViewModelTest {
             confidence = 0.9
         )
         val speechRecognizer = FakeSpeechRecognizer()
-        val viewModel = ReminderParserViewModel(
+        val viewModel = VoiceActionViewModel(
             parser = FakeVoiceActionParser(result = parserResult),
             executor = FakeVoiceActionExecutor(),
             speechRecognizer = speechRecognizer,
@@ -97,7 +97,7 @@ class ReminderParserViewModelTest {
         )
         advanceUntilIdle()
 
-        assertEquals(VoiceActionMode.Processing, viewModel.uiState.value.mode)
+        assertEquals(VoiceActionMode.Idle, viewModel.uiState.value.mode)
         assertEquals("Set a timer for 10 minutes for pasta", viewModel.uiState.value.transcript)
         assertEquals("Set timer for 10 minutes", viewModel.uiState.value.resolvedActionTitle)
         assertEquals("Label: pasta", viewModel.uiState.value.resolvedActionSubtitle)
@@ -106,7 +106,7 @@ class ReminderParserViewModelTest {
 
     @Test
     fun `onResetClicked restores idle state`() {
-        val viewModel = ReminderParserViewModel(
+        val viewModel = VoiceActionViewModel(
             parser = FakeVoiceActionParser(),
             executor = FakeVoiceActionExecutor(),
             speechRecognizer = FakeSpeechRecognizer(),
@@ -126,7 +126,7 @@ class ReminderParserViewModelTest {
     @Test
     fun `speech partial result updates transcript`() {
         val speechRecognizer = FakeSpeechRecognizer()
-        val viewModel = ReminderParserViewModel(
+        val viewModel = VoiceActionViewModel(
             parser = FakeVoiceActionParser(),
             executor = FakeVoiceActionExecutor(),
             speechRecognizer = speechRecognizer,

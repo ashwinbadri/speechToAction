@@ -1,4 +1,4 @@
-package com.example.voicetotext.reminder.ui
+package com.example.voicetotext.voiceaction.ui
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -16,7 +16,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
-class ReminderParserViewModel(
+class VoiceActionViewModel(
     private val parser: VoiceActionParser,
     private val executor: VoiceActionExecutor,
     private val speechRecognizer: SpeechRecognizer,
@@ -30,9 +30,9 @@ class ReminderParserViewModel(
     val promptModelStatus: StateFlow<PromptModelStatus> = promptModel.status
 
     private val _uiState = MutableStateFlow(
-        ReminderParserUiState(outputJson = VoiceAction.empty().toJson())
+        VoiceActionUiState(outputJson = VoiceAction.empty().toJson())
     )
-    val uiState: StateFlow<ReminderParserUiState> = _uiState.asStateFlow()
+    val uiState: StateFlow<VoiceActionUiState> = _uiState.asStateFlow()
 
     init {
         AppLogger.d(TAG, "ViewModel initialized")
@@ -97,7 +97,7 @@ class ReminderParserViewModel(
     fun onResetClicked() {
         AppLogger.d(TAG, "Reset clicked")
         speechRecognizer.stopListening()
-        _uiState.value = ReminderParserUiState(
+        _uiState.value = VoiceActionUiState(
             hasMicrophonePermission = _uiState.value.hasMicrophonePermission,
             resolvedActionTitle = if (_uiState.value.hasMicrophonePermission) {
                 "No action yet"

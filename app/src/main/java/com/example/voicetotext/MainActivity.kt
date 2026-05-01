@@ -10,7 +10,7 @@ import com.example.voicetotext.action.data.ClockVoiceActionParser
 import com.example.voicetotext.action.data.LlmVoiceActionParser
 import com.example.voicetotext.action.data.MlKitPromptModel
 import com.example.voicetotext.action.data.TimerVoiceActionParser
-import com.example.voicetotext.reminder.ui.ReminderParserRoute
+import com.example.voicetotext.voiceaction.ui.VoiceActionRoute
 import com.example.voicetotext.speech.data.AndroidSpeechRecognizer
 import com.example.voicetotext.ui.theme.VoiceToTextTheme
 
@@ -37,7 +37,7 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             VoiceToTextTheme {
-                ReminderParserRoute(
+                VoiceActionRoute(
                     parser = parser,
                     executor = executor,
                     speechRecognizer = speechRecognizer,
