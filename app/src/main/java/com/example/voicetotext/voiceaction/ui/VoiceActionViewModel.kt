@@ -187,7 +187,7 @@ class VoiceActionViewModel(
             )
             _uiState.update { currentState ->
                 currentState.copy(
-                    mode = if (setModeToProcessing) VoiceActionMode.Processing else VoiceActionMode.Idle,
+                    mode = VoiceActionMode.Idle,
                     lastAction = parsedAction,
                     resolvedActionTitle = parsedAction.actionTitle(),
                     resolvedActionSubtitle = parsedAction.actionSubtitle(),

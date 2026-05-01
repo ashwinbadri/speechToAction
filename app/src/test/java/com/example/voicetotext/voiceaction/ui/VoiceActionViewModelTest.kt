@@ -72,7 +72,7 @@ class VoiceActionViewModelTest {
 
         viewModel.onMicTapped()
 
-        assertEquals(VoiceActionMode.Processing, viewModel.uiState.value.mode)
+        assertEquals(VoiceActionMode.Idle, viewModel.uiState.value.mode)
         assertEquals(false, viewModel.uiState.value.hasMicrophonePermission)
     }
 
