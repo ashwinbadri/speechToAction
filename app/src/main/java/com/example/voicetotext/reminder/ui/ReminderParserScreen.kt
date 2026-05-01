@@ -42,16 +42,39 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
-import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.lifecycle.viewmodel.initializer
+import androidx.lifecycle.viewmodel.viewModelFactory
+import com.example.voicetotext.action.data.OnDevicePromptModel
 import com.example.voicetotext.action.data.PromptModelStatus
 import com.example.voicetotext.action.domain.VoiceAction
+import com.example.voicetotext.action.domain.VoiceActionExecutor
+import com.example.voicetotext.action.domain.VoiceActionParser
+import com.example.voicetotext.speech.domain.SpeechRecognizer
 import com.example.voicetotext.ui.theme.VoiceToTextTheme
 
 @Composable
-fun ReminderParserRoute(modifier: Modifier = Modifier) {
+fun ReminderParserRoute(
+    parser: VoiceActionParser,
+    executor: VoiceActionExecutor,
+    speechRecognizer: SpeechRecognizer,
+    promptModel: OnDevicePromptModel,
+    modifier: Modifier = Modifier
+) {
     val context = LocalContext.current
-    val viewModel: ReminderParserViewModel = hiltViewModel()
+    val viewModel: ReminderParserViewModel = viewModel(
+        factory = viewModelFactory {
+            initializer {
+                ReminderParserViewModel(
+                    parser = parser,
+                    executor = executor,
+                    speechRecognizer = speechRecognizer,
+                    promptModel = promptModel
+                )
+            }
+        }
+    )
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val modelStatus by viewModel.promptModelStatus.collectAsStateWithLifecycle()
     val microphonePermissionLauncher = rememberLauncherForActivityResult(
@@ -130,7 +153,7 @@ fun ReminderParserScreen(
                         uiState.mode == VoiceActionMode.Idle &&
                         uiState.transcript.isNotBlank() &&
                         uiState.lastAction != null &&
-                        uiState.lastAction !is com.example.voicetotext.action.domain.VoiceAction.Unknown &&
+                        uiState.lastAction !is VoiceAction.Unknown &&
                         uiState.executionResult == null
 
                     ActionPreviewCard(
