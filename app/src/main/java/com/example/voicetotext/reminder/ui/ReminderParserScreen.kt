@@ -55,6 +55,7 @@ import com.example.voicetotext.ui.theme.VoiceToTextTheme
 @Composable
 fun ReminderParserRoute(
     parser: VoiceActionParser,
+    executor: com.example.voicetotext.action.domain.VoiceActionExecutor,
     speechRecognizer: SpeechRecognizer,
     modelStatus: PromptModelStatus,
     modifier: Modifier = Modifier
@@ -65,6 +66,7 @@ fun ReminderParserRoute(
             initializer {
                 ReminderParserViewModel(
                     parser = parser,
+                    executor = executor,
                     speechRecognizer = speechRecognizer
                 )
             }
@@ -143,12 +145,18 @@ fun ReminderParserScreen(
                         onActionResolved = onActionResolved
                     )
 
+                    val canRun = uiState.hasMicrophonePermission &&
+                        uiState.mode == VoiceActionMode.Idle &&
+                        uiState.transcript.isNotBlank() &&
+                        uiState.lastAction != null &&
+                        uiState.lastAction !is com.example.voicetotext.action.domain.VoiceAction.Unknown &&
+                        uiState.executionResult == null
+
                     ActionPreviewCard(
                         title = uiState.resolvedActionTitle,
                         subtitle = uiState.resolvedActionSubtitle,
-                        isReady = uiState.hasMicrophonePermission &&
-                            uiState.mode == VoiceActionMode.Idle &&
-                            uiState.transcript.isNotBlank()
+                        isReady = canRun,
+                        executionResult = uiState.executionResult
                     )
 
                     Row(
@@ -157,9 +165,7 @@ fun ReminderParserScreen(
                     ) {
                         Button(
                             onClick = onRunActionClicked,
-                            enabled = uiState.hasMicrophonePermission &&
-                                uiState.mode == VoiceActionMode.Idle &&
-                                uiState.transcript.isNotBlank(),
+                            enabled = canRun,
                             modifier = Modifier.weight(1f)
                         ) {
                             Text("Run Action")
@@ -376,12 +382,19 @@ private fun PermissionPromptCard(
 private fun ActionPreviewCard(
     title: String,
     subtitle: String,
-    isReady: Boolean
+    isReady: Boolean,
+    executionResult: com.example.voicetotext.action.domain.ExecutionResult?
 ) {
+    val cardColor = when (executionResult) {
+        is com.example.voicetotext.action.domain.ExecutionResult.Success -> Color(0xFFECFDF3)
+        is com.example.voicetotext.action.domain.ExecutionResult.Failure -> Color(0xFFFFF1F2)
+        null -> Color.White
+    }
+
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White)
+        colors = CardDefaults.cardColors(containerColor = cardColor)
     ) {
         Column(
             modifier = Modifier.padding(20.dp),
@@ -408,14 +421,24 @@ private fun ActionPreviewCard(
 
             Spacer(modifier = Modifier.height(4.dp))
 
-            Text(
-                text = if (isReady) {
-                    "Ready to execute once you confirm."
-                } else {
+            val statusText = when (executionResult) {
+                is com.example.voicetotext.action.domain.ExecutionResult.Success ->
+                    "Action launched. Check the Clock app to confirm."
+                is com.example.voicetotext.action.domain.ExecutionResult.Failure ->
+                    "Failed: ${executionResult.reason}"
+                null -> if (isReady) "Ready to execute once you confirm." else
                     "We’ll show the final action here after voice capture finishes."
-                },
+            }
+            val statusColor = when (executionResult) {
+                is com.example.voicetotext.action.domain.ExecutionResult.Success -> Color(0xFF05603A)
+                is com.example.voicetotext.action.domain.ExecutionResult.Failure -> Color(0xFF9B1C1C)
+                null -> Color(0xFF6B7280)
+            }
+
+            Text(
+                text = statusText,
                 style = MaterialTheme.typography.bodySmall,
-                color = Color(0xFF6B7280)
+                color = statusColor
             )
         }
     }

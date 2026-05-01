@@ -3,6 +3,7 @@ package com.example.voicetotext.reminder.ui
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.voicetotext.action.domain.VoiceAction
+import com.example.voicetotext.action.domain.VoiceActionExecutor
 import com.example.voicetotext.action.domain.VoiceActionParser
 import com.example.voicetotext.core.logging.AppLogger
 import com.example.voicetotext.speech.domain.SpeechRecognitionEvent
@@ -15,6 +16,7 @@ import kotlinx.coroutines.launch
 
 class ReminderParserViewModel(
     private val parser: VoiceActionParser,
+    private val executor: VoiceActionExecutor,
     private val speechRecognizer: SpeechRecognizer
 ) : ViewModel() {
 
@@ -77,15 +79,13 @@ class ReminderParserViewModel(
     }
 
     fun onRunActionClicked() {
-        if (!_uiState.value.hasMicrophonePermission) return
+        val action = _uiState.value.lastAction ?: return
+        if (action is VoiceAction.Unknown) return
 
-        AppLogger.d(TAG, "Run action clicked")
-        _uiState.update { currentState ->
-            currentState.copy(
-                resolvedActionTitle = "Ready to run timer",
-                resolvedActionSubtitle = "Action execution will be connected in the next step."
-            )
-        }
+        AppLogger.d(TAG, "Run action clicked action=${action.javaClass.simpleName}")
+        val result = executor.execute(action)
+        AppLogger.d(TAG, "Execution result=${result.javaClass.simpleName}")
+        _uiState.update { it.copy(executionResult = result) }
     }
 
     fun onResetClicked() {
@@ -103,7 +103,9 @@ class ReminderParserViewModel(
             } else {
                 "Allow microphone access so voice capture can run fully on-device."
             },
-            outputJson = VoiceAction.empty().toJson()
+            outputJson = VoiceAction.empty().toJson(),
+            lastAction = null,
+            executionResult = null
         )
     }
 
@@ -180,6 +182,7 @@ class ReminderParserViewModel(
             _uiState.update { currentState ->
                 currentState.copy(
                     mode = if (setModeToProcessing) VoiceActionMode.Processing else VoiceActionMode.Idle,
+                    lastAction = parsedAction,
                     resolvedActionTitle = parsedAction.actionTitle(),
                     resolvedActionSubtitle = parsedAction.actionSubtitle(),
                     outputJson = parsedAction.toJson()

@@ -7,6 +7,7 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.runtime.getValue
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.example.voicetotext.action.data.AndroidVoiceActionExecutor
 import com.example.voicetotext.action.data.ClockVoiceActionParser
 import com.example.voicetotext.action.data.LlmVoiceActionParser
 import com.example.voicetotext.action.data.MlKitPromptModel
@@ -27,6 +28,7 @@ class MainActivity : ComponentActivity() {
             promptModel = promptModel,
             fallbackParser = ClockVoiceActionParser()
         )
+        val executor = AndroidVoiceActionExecutor(applicationContext)
         speechRecognizer = AndroidSpeechRecognizer(applicationContext)
         lifecycleScope.launch {
             promptModel.prefetch()
@@ -37,6 +39,7 @@ class MainActivity : ComponentActivity() {
             VoiceToTextTheme {
                 ReminderParserRoute(
                     parser = parser,
+                    executor = executor,
                     speechRecognizer = speechRecognizer,
                     modelStatus = modelStatus
                 )

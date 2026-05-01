@@ -1,6 +1,8 @@
 package com.example.voicetotext.reminder.ui
 
+import com.example.voicetotext.action.domain.ExecutionResult
 import com.example.voicetotext.action.domain.VoiceAction
+import com.example.voicetotext.action.domain.VoiceActionExecutor
 import com.example.voicetotext.action.domain.VoiceActionParser
 import com.example.voicetotext.speech.data.FakeSpeechRecognizer
 import com.example.voicetotext.speech.domain.SpeechRecognitionEvent
@@ -29,6 +31,7 @@ class ReminderParserViewModelTest {
     fun `onMicrophonePermissionUpdated stores granted state`() {
         val viewModel = ReminderParserViewModel(
             parser = FakeVoiceActionParser(),
+            executor = FakeVoiceActionExecutor(),
             speechRecognizer = FakeSpeechRecognizer()
         )
 
@@ -41,6 +44,7 @@ class ReminderParserViewModelTest {
     fun `onMicTapped switches ui into listening mode`() {
         val viewModel = ReminderParserViewModel(
             parser = FakeVoiceActionParser(),
+            executor = FakeVoiceActionExecutor(),
             speechRecognizer = FakeSpeechRecognizer()
         )
         viewModel.onMicrophonePermissionUpdated(true)
@@ -55,6 +59,7 @@ class ReminderParserViewModelTest {
     fun `onMicTapped does nothing when permission is missing`() {
         val viewModel = ReminderParserViewModel(
             parser = FakeVoiceActionParser(),
+            executor = FakeVoiceActionExecutor(),
             speechRecognizer = FakeSpeechRecognizer()
         )
 
@@ -74,6 +79,7 @@ class ReminderParserViewModelTest {
         val speechRecognizer = FakeSpeechRecognizer()
         val viewModel = ReminderParserViewModel(
             parser = FakeVoiceActionParser(result = parserResult),
+            executor = FakeVoiceActionExecutor(),
             speechRecognizer = speechRecognizer
         )
         viewModel.onMicrophonePermissionUpdated(true)
@@ -94,6 +100,7 @@ class ReminderParserViewModelTest {
     fun `onResetClicked restores idle state`() {
         val viewModel = ReminderParserViewModel(
             parser = FakeVoiceActionParser(),
+            executor = FakeVoiceActionExecutor(),
             speechRecognizer = FakeSpeechRecognizer()
         )
         viewModel.onMicrophonePermissionUpdated(true)
@@ -112,6 +119,7 @@ class ReminderParserViewModelTest {
         val speechRecognizer = FakeSpeechRecognizer()
         val viewModel = ReminderParserViewModel(
             parser = FakeVoiceActionParser(),
+            executor = FakeVoiceActionExecutor(),
             speechRecognizer = speechRecognizer
         )
 
@@ -124,6 +132,10 @@ class ReminderParserViewModelTest {
         private val result: VoiceAction = VoiceAction.empty()
     ) : VoiceActionParser {
         override suspend fun parse(input: String): VoiceAction = result
+    }
+
+    private class FakeVoiceActionExecutor : VoiceActionExecutor {
+        override fun execute(action: VoiceAction): ExecutionResult = ExecutionResult.Success
     }
 }
 
