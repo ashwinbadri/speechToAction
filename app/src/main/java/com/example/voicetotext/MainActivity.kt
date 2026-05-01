@@ -1,5 +1,6 @@
 package com.example.voicetotext
 
+import android.content.pm.ApplicationInfo
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -22,6 +23,9 @@ class MainActivity : ComponentActivity() {
     private val promptModel by lazy { MlKitPromptModel() }
     private val speechRecognizer by lazy { AndroidSpeechRecognizer(applicationContext) }
     private val executor by lazy { AndroidVoiceActionExecutor(applicationContext) }
+    private val isDebugBuild by lazy {
+        (applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE) != 0
+    }
     private val parser by lazy {
         LlmVoiceActionParser(
             promptModel = promptModel,
@@ -41,7 +45,8 @@ class MainActivity : ComponentActivity() {
                     parser = parser,
                     executor = executor,
                     speechRecognizer = speechRecognizer,
-                    promptModel = promptModel
+                    promptModel = promptModel,
+                    isDebug = isDebugBuild
                 )
             }
         }

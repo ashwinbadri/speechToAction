@@ -88,6 +88,7 @@ fun VoiceActionRoute(
     executor: VoiceActionExecutor,
     speechRecognizer: SpeechRecognizer,
     promptModel: OnDevicePromptModel,
+    isDebug: Boolean,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -122,6 +123,7 @@ fun VoiceActionRoute(
     VoiceActionScreen(
         uiState = uiState,
         modelStatus = modelStatus,
+        isDebug = isDebug,
         onMicTapped = viewModel::onMicTapped,
         onRequestMicrophonePermission = {
             microphonePermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
@@ -137,6 +139,7 @@ fun VoiceActionRoute(
 fun VoiceActionScreen(
     uiState: VoiceActionUiState,
     modelStatus: PromptModelStatus,
+    isDebug: Boolean,
     onMicTapped: () -> Unit,
     onRequestMicrophonePermission: () -> Unit,
     onActionResolved: () -> Unit,
@@ -167,7 +170,7 @@ fun VoiceActionScreen(
                     modifier = Modifier.padding(horizontal = 20.dp, vertical = 22.dp),
                     verticalArrangement = Arrangement.spacedBy(18.dp)
                 ) {
-                    StatusPill(status = modelStatus)
+                    StatusPill(status = modelStatus, isDebug = isDebug)
                     HeroVoiceCard(
                         hasMicrophonePermission = uiState.hasMicrophonePermission,
                         mode = uiState.mode,
@@ -187,7 +190,9 @@ fun VoiceActionScreen(
                         onRunActionClicked = onRunActionClicked,
                         onResetClicked = onResetClicked
                     )
-                    DebugCard(output = uiState.outputJson)
+                    if (isDebug) {
+                        DebugCard(output = uiState.outputJson)
+                    }
                 }
             }
         }
@@ -224,18 +229,29 @@ private fun Header() {
 }
 
 @Composable
-private fun StatusPill(status: PromptModelStatus) {
+private fun StatusPill(
+    status: PromptModelStatus,
+    isDebug: Boolean
+) {
     val label = when (status) {
         PromptModelStatus.Checking -> "Checking on-device model"
         PromptModelStatus.Downloading -> "Downloading Gemini Nano"
         PromptModelStatus.Ready -> "On-device model ready"
-        PromptModelStatus.Unavailable -> "Using local fallback parser"
+        PromptModelStatus.Unavailable -> if (isDebug) {
+            "Using local fallback parser"
+        } else {
+            "On-device model unavailable"
+        }
     }
     val detail = when (status) {
         PromptModelStatus.Checking -> "We are verifying whether Gemini Nano is ready on this device."
         PromptModelStatus.Downloading -> "Voice actions still work while the model downloads in the background."
         PromptModelStatus.Ready -> "Prompt-based action resolution is available locally."
-        PromptModelStatus.Unavailable -> "This device is running the deterministic parser path."
+        PromptModelStatus.Unavailable -> if (isDebug) {
+            "This device is running the deterministic parser path."
+        } else {
+            "The enhanced model path is not available on this device right now."
+        }
     }
     val background = when (status) {
         PromptModelStatus.Unavailable -> Color(0xFFFFF7ED)
@@ -653,6 +669,7 @@ private fun VoiceActionScreenPreview() {
                 ).toJson()
             ),
             modelStatus = PromptModelStatus.Ready,
+            isDebug = true,
             onMicTapped = {},
             onRequestMicrophonePermission = {},
             onActionResolved = {},
