@@ -61,16 +61,19 @@ Schema:
   "duration_seconds": number or null,
   "hour": number or null,
   "minute": number or null,
+  "timezone": string or null,
   "label": string or null,
   "confidence": number
 }
 
 Rules:
 - SET_TIMER: user says "set a timer", "start a countdown", "remind me in X minutes", etc.
-  Set duration_seconds to the total seconds. Set hour and minute to null.
+  Set duration_seconds to the total seconds. Set hour, minute, and timezone to null.
 - SET_ALARM: user says "set an alarm", "wake me up at", "alarm for X AM/PM", etc.
   Set hour (0–23, 24-hour format) and minute (0–59). Set duration_seconds to null.
   Examples: "7:30 AM" → hour=7, minute=30. "9 PM" → hour=21, minute=0. "midnight" → hour=0, minute=0. "noon" → hour=12, minute=0.
+- timezone: if the user mentions a timezone, output its IANA zone ID (e.g., "America/New_York", "Europe/London", "Asia/Kolkata"). Use null if no timezone is mentioned.
+  Examples: "EST" → "America/New_York". "PST" → "America/Los_Angeles". "IST" → "Asia/Kolkata". "GMT" → "GMT".
 - label: optional name the user gave ("for pasta", "called standup"). Omit filler words like "for" or "called". Use null if none.
 - confidence: 0.0–1.0 reflecting how certain you are.
 - If unclear, return UNKNOWN_ACTION with all other fields null.

@@ -30,9 +30,18 @@ object VoiceActionJsonParser {
                 val hour = hourRegex.find(normalized)?.groupValues?.get(1)?.toIntOrNull() ?: return null
                 val minute = minuteRegex.find(normalized)?.groupValues?.get(1)?.toIntOrNull() ?: 0
                 if (hour !in 0..23 || minute !in 0..59) return null
+
+                val timezoneStr = timezoneRegex.find(normalized)?.groupValues?.get(1)
+                val sourceZone = timezoneStr?.let { AlarmTimeZoneConverter.resolveZoneId(it) }
+                val (localHour, localMinute) = if (sourceZone != null) {
+                    AlarmTimeZoneConverter.convertToDeviceLocal(hour, minute, sourceZone)
+                } else {
+                    hour to minute
+                }
+
                 VoiceAction.SetAlarm(
-                    hour = hour,
-                    minute = minute,
+                    hour = localHour,
+                    minute = localMinute,
                     label = parseLabel(normalized),
                     confidence = confidence
                 )
@@ -61,6 +70,7 @@ object VoiceActionJsonParser {
     private val durationRegex = Regex(""""duration_seconds"\s*:\s*(\d+)""")
     private val hourRegex = Regex(""""hour"\s*:\s*(\d+)""")
     private val minuteRegex = Regex(""""minute"\s*:\s*(\d+)""")
+    private val timezoneRegex = Regex(""""timezone"\s*:\s*"([^"]+)"""")
     private val labelRegex = Regex(""""label"\s*:\s*(null|"([^"\\]|\\.)*")""")
     private val confidenceRegex = Regex(""""confidence"\s*:\s*([0-9]+(?:\.[0-9]+)?)""")
 }
