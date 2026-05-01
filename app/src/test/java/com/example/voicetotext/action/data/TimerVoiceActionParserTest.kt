@@ -36,4 +36,41 @@ class TimerVoiceActionParserTest {
         assertNull(result.label)
         assertEquals(0.9, result.confidence, 0.0)
     }
+
+    @Test
+    fun `parse supports wake me phrasing without timer keyword`() {
+        val result = runBlocking { parser.parse("Wake me in 20 minutes") }
+
+        result as VoiceAction.SetTimer
+        assertEquals(1200, result.durationSeconds)
+        assertNull(result.label)
+        assertEquals(0.85, result.confidence, 0.0)
+    }
+
+    @Test
+    fun `parse supports reminder style phrasing with task label`() {
+        val result = runBlocking { parser.parse("Remind me in 15 minutes to check the oven") }
+
+        result as VoiceAction.SetTimer
+        assertEquals(900, result.durationSeconds)
+        assertEquals("check the oven", result.label)
+        assertEquals(0.95, result.confidence, 0.0)
+    }
+
+    @Test
+    fun `parse supports timer label when timer comes after duration`() {
+        val result = runBlocking { parser.parse("Start 5 minutes timer for tea") }
+
+        result as VoiceAction.SetTimer
+        assertEquals(300, result.durationSeconds)
+        assertEquals("tea", result.label)
+        assertEquals(1.0, result.confidence, 0.0)
+    }
+
+    @Test
+    fun `parse returns unknown for duration without timer intent`() {
+        val result = runBlocking { parser.parse("I worked for 10 minutes on math") }
+
+        assertEquals(VoiceAction.Unknown(confidence = 0.3), result)
+    }
 }
