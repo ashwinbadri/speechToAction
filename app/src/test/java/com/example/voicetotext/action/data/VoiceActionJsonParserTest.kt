@@ -114,6 +114,27 @@ class VoiceActionJsonParserTest {
     }
 
     @Test
+    fun `parse accepts p dot m meridiem from model output`() {
+        val result = VoiceActionJsonParser.parse(
+            """
+            {
+              "intent": "SET_ALARM",
+              "hour": 5,
+              "minute": 0,
+              "meridiem": "p.m.",
+              "timezone": null,
+              "label": "task",
+              "confidence": 0.9
+            }
+            """.trimIndent()
+        )
+
+        result as VoiceAction.SetAlarm
+        assertEquals(17, result.hour)
+        assertEquals("task", result.label)
+    }
+
+    @Test
     fun `parse returns null for invalid timer payload`() {
         val result = VoiceActionJsonParser.parse(
             """

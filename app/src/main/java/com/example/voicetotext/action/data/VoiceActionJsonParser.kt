@@ -74,7 +74,10 @@ object VoiceActionJsonParser {
 
     private fun applyMeridiem(hour: Int, meridiem: String?): Int {
         if (meridiem == null || hour > 12) return hour
-        return when (meridiem.uppercase()) {
+        val normalizedMeridiem = meridiem.uppercase()
+            .replace(".", "")
+            .replace(" ", "")
+        return when (normalizedMeridiem) {
             "PM" -> if (hour == 12) 12 else hour + 12
             "AM" -> if (hour == 12) 0 else hour
             else -> hour
@@ -85,7 +88,10 @@ object VoiceActionJsonParser {
     private val durationRegex = Regex(""""duration_seconds"\s*:\s*(\d+)""")
     private val hourRegex = Regex(""""hour"\s*:\s*(\d+)""")
     private val minuteRegex = Regex(""""minute"\s*:\s*(\d+)""")
-    private val meridiemRegex = Regex(""""meridiem"\s*:\s*"(AM|PM)"""", RegexOption.IGNORE_CASE)
+    private val meridiemRegex = Regex(
+        """"meridiem"\s*:\s*"(a\.?\s*m\.?|p\.?\s*m\.?)"""",
+        RegexOption.IGNORE_CASE
+    )
     private val timezoneRegex = Regex(""""timezone"\s*:\s*"([^"]+)"""")
     private val labelRegex = Regex(""""label"\s*:\s*(null|"([^"\\]|\\.)*")""")
     private val confidenceRegex = Regex(""""confidence"\s*:\s*([0-9]+(?:\.[0-9]+)?)""")

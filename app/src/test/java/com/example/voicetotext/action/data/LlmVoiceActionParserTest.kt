@@ -111,6 +111,40 @@ class LlmVoiceActionParserTest {
         assertEquals("call my friend", result.label)
     }
 
+    @Test
+    fun `parse enriches model alarm with transcript meridiem and fallback label`() {
+        val json = """
+            {
+              "intent": "SET_ALARM",
+              "duration_seconds": null,
+              "hour": 5,
+              "minute": 0,
+              "meridiem": null,
+              "timezone": null,
+              "label": null,
+              "confidence": 0.82
+            }
+        """.trimIndent()
+        val fallbackAction = VoiceAction.SetAlarm(
+            hour = 17,
+            minute = 0,
+            label = "doing task",
+            confidence = 0.9
+        )
+        val parser = LlmVoiceActionParser(
+            promptModel = FakeOnDevicePromptModel(available = true, response = json),
+            fallbackParser = FakeParser(fallbackAction)
+        )
+
+        val result = runBlocking {
+            parser.parse("Set alarm to remind me about doing task at 5 PM today")
+        }
+
+        result as VoiceAction.SetAlarm
+        assertEquals(17, result.hour)
+        assertEquals("doing task", result.label)
+    }
+
     private class FakeParser(
         private val result: VoiceAction = VoiceAction.Unknown(0.0)
     ) : VoiceActionParser {

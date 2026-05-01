@@ -41,6 +41,14 @@ class AlarmVoiceActionParserTest {
     }
 
     @Test
+    fun `parse supports p dot m transcript format`() {
+        val result = runBlocking { parser.parse("Set an alarm for 5 p.m. today") }
+        result as VoiceAction.SetAlarm
+        assertEquals(17, result.hour)
+        assertEquals(0, result.minute)
+    }
+
+    @Test
     fun `parse converts 12 PM to hour 12`() {
         val result = runBlocking { parser.parse("Set alarm for 12 PM") }
         result as VoiceAction.SetAlarm
@@ -146,6 +154,17 @@ class AlarmVoiceActionParserTest {
         result as VoiceAction.SetAlarm
         assertEquals(8, result.hour)
         assertEquals(0, result.minute)
+    }
+
+    @Test
+    fun `parse extracts label before time in reminder style alarm phrase`() {
+        val result = runBlocking {
+            parser.parse("Set alarm to remind me about doing task at 5 PM today")
+        }
+        result as VoiceAction.SetAlarm
+        assertEquals(17, result.hour)
+        assertEquals(0, result.minute)
+        assertEquals("doing task", result.label)
     }
 
     // --- Timezone conversion ---

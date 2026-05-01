@@ -553,25 +553,127 @@ private fun TranscriptPanel(
 private fun PermissionPromptCard(
     onRequestMicrophonePermission: () -> Unit
 ) {
+    val permissionTransition = rememberInfiniteTransition(label = "permissionPrompt")
+    val haloScale by permissionTransition.animateFloat(
+        initialValue = 0.94f,
+        targetValue = 1.08f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 1400),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "haloScale"
+    )
+    val haloAlpha by permissionTransition.animateFloat(
+        initialValue = 0.16f,
+        targetValue = 0.34f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 1400),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "haloAlpha"
+    )
+    val sparkleFloat by permissionTransition.animateFloat(
+        initialValue = -8f,
+        targetValue = 8f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 1600),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "sparkleFloat"
+    )
+
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(24.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White)
+        colors = CardDefaults.cardColors(containerColor = Color(0xFFFFFCF7))
     ) {
         Column(
             modifier = Modifier.padding(18.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
+            Box(
+                modifier = Modifier.size(172.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(152.dp)
+                        .scale(haloScale)
+                        .alpha(haloAlpha)
+                        .clip(CircleShape)
+                        .background(Color(0xFFFBD4C9))
+                )
+                Canvas(
+                    modifier = Modifier
+                        .size(164.dp)
+                        .alpha(0.7f)
+                ) {
+                    drawCircle(
+                        color = Color(0xFFF4A261),
+                        radius = size.minDimension / 2.35f,
+                        style = androidx.compose.ui.graphics.drawscope.Stroke(width = 6.dp.toPx())
+                    )
+                    drawCircle(
+                        color = Color(0xFFFDE6D8),
+                        radius = size.minDimension / 2.9f,
+                        style = androidx.compose.ui.graphics.drawscope.Stroke(width = 12.dp.toPx())
+                    )
+                }
+                Surface(
+                    modifier = Modifier.size(108.dp),
+                    shape = CircleShape,
+                    color = Coral,
+                    shadowElevation = 10.dp
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Text(
+                            text = "MIC",
+                            style = MaterialTheme.typography.headlineSmall,
+                            fontWeight = FontWeight.Black,
+                            color = Color.White
+                        )
+                    }
+                }
+                Text(
+                    text = "✦",
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(top = 22.dp, end = 18.dp)
+                        .alpha(0.8f)
+                        .scale(1f + (sparkleFloat / 60f)),
+                    color = Color(0xFFFFB703),
+                    style = MaterialTheme.typography.titleLarge
+                )
+                Text(
+                    text = "✦",
+                    modifier = Modifier
+                        .align(Alignment.BottomStart)
+                        .padding(start = 18.dp, bottom = 22.dp)
+                        .alpha(0.65f)
+                        .scale(0.9f - (sparkleFloat / 100f)),
+                    color = Color(0xFFFFD166),
+                    style = MaterialTheme.typography.titleMedium
+                )
+            }
             Text(
-                text = "Microphone access needed",
+                text = "Turn on the mic to unlock the magic",
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
-                color = Ink
+                color = Ink,
+                textAlign = TextAlign.Center
             )
             Text(
-                text = "Allow microphone access so the app can capture speech locally and turn it into time actions.",
+                text = "Voice Time Actions works best when you can just speak naturally. Enable microphone access and we’ll handle the rest on-device.",
                 style = MaterialTheme.typography.bodyMedium,
-                color = Slate
+                color = Slate,
+                textAlign = TextAlign.Center
+            )
+            Text(
+                text = "You’ll be able to set timers and alarms hands-free in one tap.",
+                style = MaterialTheme.typography.bodySmall,
+                color = CoralDark,
+                textAlign = TextAlign.Center
             )
             Button(
                 onClick = onRequestMicrophonePermission,

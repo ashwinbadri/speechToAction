@@ -19,7 +19,7 @@ sealed interface VoiceAction {
         override fun actionTitle(): String = "Set timer for ${durationSeconds.toDurationLabel()}"
 
         override fun actionSubtitle(): String {
-            return if (label.isNullOrBlank()) "No label" else "Label: $label"
+            return if (label.isNullOrBlank()) "No label needed for this timer" else "Label: $label"
         }
 
         override fun toJson(): String {
@@ -43,7 +43,7 @@ sealed interface VoiceAction {
         override fun actionTitle(): String = "Set alarm for ${hour.toHour12()}:${minute.toString().padStart(2, '0')} ${hour.toAmPm()}"
 
         override fun actionSubtitle(): String {
-            return if (label.isNullOrBlank()) "No label" else "Label: $label"
+            return if (label.isNullOrBlank()) "Wake-up alarm with no extra note" else "Label: $label"
         }
 
         override fun toJson(): String {

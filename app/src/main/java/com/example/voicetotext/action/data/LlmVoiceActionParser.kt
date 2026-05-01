@@ -3,6 +3,7 @@ package com.example.voicetotext.action.data
 import com.example.voicetotext.action.domain.VoiceAction
 import com.example.voicetotext.action.domain.VoiceActionParser
 import com.example.voicetotext.core.logging.AppLogger
+import java.util.Locale
 
 class LlmVoiceActionParser(
     private val promptModel: OnDevicePromptModel,
@@ -11,6 +12,7 @@ class LlmVoiceActionParser(
 
     companion object {
         private const val TAG = "VoiceActionLlm"
+        private val meridiemRegex = Regex("""\b(a\.?\s*m\.?|p\.?\s*m\.?)\b""", RegexOption.IGNORE_CASE)
     }
 
     override suspend fun parse(input: String): VoiceAction {
@@ -40,8 +42,40 @@ class LlmVoiceActionParser(
             return fallbackParser.parse(normalizedInput)
         }
 
-        AppLogger.d(TAG, "Prompt parser resolved action=${parsedAction.javaClass.simpleName}")
-        return parsedAction
+        val enrichedAction = enrichWithTranscript(normalizedInput, parsedAction)
+        AppLogger.d(TAG, "Prompt parser resolved action=${enrichedAction.javaClass.simpleName}")
+        return enrichedAction
+    }
+
+    private suspend fun enrichWithTranscript(
+        transcript: String,
+        parsedAction: VoiceAction
+    ): VoiceAction {
+        if (parsedAction !is VoiceAction.SetAlarm) return parsedAction
+
+        val fallbackAlarm = fallbackParser.parse(transcript) as? VoiceAction.SetAlarm
+        val transcriptMeridiem = meridiemRegex.find(transcript)?.groupValues?.get(1)?.uppercase(Locale.US)
+        val correctedHour = applyTranscriptMeridiem(parsedAction.hour, transcriptMeridiem)
+        val correctedLabel = parsedAction.label ?: fallbackAlarm?.label
+
+        return parsedAction.copy(
+            hour = correctedHour,
+            label = correctedLabel
+        )
+    }
+
+    private fun applyTranscriptMeridiem(
+        hour: Int,
+        meridiem: String?
+    ): Int {
+        val normalizedMeridiem = meridiem
+            ?.replace(".", "")
+            ?.replace(" ", "")
+        return when (normalizedMeridiem) {
+            "PM" -> if (hour in 1..11) hour + 12 else hour
+            "AM" -> if (hour == 12) 0 else hour
+            else -> hour
+        }
     }
 
     private fun buildPrompt(transcript: String): String {

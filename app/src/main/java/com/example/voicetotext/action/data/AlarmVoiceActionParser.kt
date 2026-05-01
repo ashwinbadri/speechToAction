@@ -13,10 +13,10 @@ class AlarmVoiceActionParser : VoiceActionParser {
         val lowered = normalized.lowercase(Locale.US)
         if (!isLikelyAlarmIntent(lowered)) return VoiceAction.Unknown(confidence = 0.1)
 
-        val (timeResult, afterIndex) = parseTime(lowered)
+        val (timeResult, timeRange) = parseTime(lowered)
             ?: return VoiceAction.Unknown(confidence = 0.3)
 
-        val label = extractLabel(normalized, afterIndex)
+        val label = extractLabel(normalized, timeRange)
 
         val sourceZone = AlarmTimeZoneConverter.detectInText(lowered)
         val (localHour, localMinute) = if (sourceZone != null) {
@@ -45,10 +45,10 @@ class AlarmVoiceActionParser : VoiceActionParser {
 
     private data class TimeResult(val hour: Int, val minute: Int)
 
-    private fun parseTime(lowered: String): Pair<TimeResult, Int>? {
+    private fun parseTime(lowered: String): Pair<TimeResult, IntRange>? {
         // Named times before numeric patterns so "noon" / "midnight" win unconditionally.
-        noonRegex.find(lowered)?.let { return TimeResult(12, 0) to it.range.last + 1 }
-        midnightRegex.find(lowered)?.let { return TimeResult(0, 0) to it.range.last + 1 }
+        noonRegex.find(lowered)?.let { return TimeResult(12, 0) to it.range }
+        midnightRegex.find(lowered)?.let { return TimeResult(0, 0) to it.range }
 
         // "7:30 AM" / "7:30 PM" — most specific first.
         timeWithMinutesAndMeridiemRegex.find(lowered)?.let { match ->
@@ -56,14 +56,14 @@ class AlarmVoiceActionParser : VoiceActionParser {
             val minute = match.groupValues[2].toIntOrNull() ?: return@let
             if (minute > 59) return@let
             val hour24 = to24Hour(hour, match.groupValues[3]) ?: return@let
-            return TimeResult(hour24, minute) to match.range.last + 1
+            return TimeResult(hour24, minute) to match.range
         }
 
         // "7 AM" / "7 PM"
         hourOnlyWithMeridiemRegex.find(lowered)?.let { match ->
             val hour = match.groupValues[1].toIntOrNull() ?: return@let
             val hour24 = to24Hour(hour, match.groupValues[2]) ?: return@let
-            return TimeResult(hour24, 0) to match.range.last + 1
+            return TimeResult(hour24, 0) to match.range
         }
 
         // "14:30" — bare colon form (24-hour or contextually unambiguous).
@@ -71,34 +71,51 @@ class AlarmVoiceActionParser : VoiceActionParser {
             val hour = match.groupValues[1].toIntOrNull() ?: return@let
             val minute = match.groupValues[2].toIntOrNull() ?: return@let
             if (hour > 23 || minute > 59) return@let
-            return TimeResult(hour, minute) to match.range.last + 1
+            return TimeResult(hour, minute) to match.range
         }
 
         // "7 o'clock"
         oclockRegex.find(lowered)?.let { match ->
             val hour = match.groupValues[1].toIntOrNull() ?: return@let
             if (hour > 23) return@let
-            return TimeResult(hour, 0) to match.range.last + 1
+            return TimeResult(hour, 0) to match.range
         }
 
         return null
     }
 
-    // afterIndex is the end of the time match in lowered, which is the same length as normalized.
-    private fun extractLabel(normalized: String, afterIndex: Int): String? {
+    private fun extractLabel(normalized: String, timeRange: IntRange): String? {
+        val beforeTime = normalized.substring(0, timeRange.first).trim()
+        val beforeTimeLabel = preTimeLabelRegex.find(beforeTime)
+            ?.groupValues?.get(1)
+            ?.replace(trailingPreTimeMarkerRegex, "")
+            ?.trim()
+            ?.trimEnd('.', '!', '?', ',', ' ')
+            ?.ifBlank { null }
+        if (beforeTimeLabel != null) return beforeTimeLabel
+
+        val afterIndex = (timeRange.last + 1).coerceAtMost(normalized.length)
         if (afterIndex >= normalized.length) return null
-        val remaining = normalized.substring(afterIndex).trim()
+
+        val remaining = normalized.substring(afterIndex)
+            .replace(trailingDayWordsRegex, "")
+            .trim()
+
         return labelRegex.find(remaining)
             ?.groupValues?.get(1)
             ?.trim()
+            ?.trimEnd('.', '!', '?', ',', ' ')
             ?.ifBlank { null }
     }
 
     private fun to24Hour(hour: Int, meridiem: String): Int? {
         if (hour < 1 || hour > 12) return null
+        val normalizedMeridiem = meridiem.lowercase(Locale.US)
+            .replace(".", "")
+            .replace(" ", "")
         return when {
-            meridiem.startsWith("a") -> if (hour == 12) 0 else hour
-            meridiem.startsWith("p") -> if (hour == 12) 12 else hour + 12
+            normalizedMeridiem.startsWith("a") -> if (hour == 12) 0 else hour
+            normalizedMeridiem.startsWith("p") -> if (hour == 12) 12 else hour + 12
             else -> null
         }
     }
@@ -114,14 +131,27 @@ class AlarmVoiceActionParser : VoiceActionParser {
         private val noonRegex = Regex("""\bnoon\b""")
         private val midnightRegex = Regex("""\bmidnight\b""")
 
-        private val timeWithMinutesAndMeridiemRegex = Regex("""(\d{1,2}):(\d{2})\s*(am|pm)""")
-        private val hourOnlyWithMeridiemRegex = Regex("""(\d{1,2})\s*(am|pm)""")
+        private const val MERIDIEM_PATTERN = """(a\.?\s*m\.?|p\.?\s*m\.?)"""
+        private val timeWithMinutesAndMeridiemRegex = Regex("""(\d{1,2}):(\d{2})\s*$MERIDIEM_PATTERN""")
+        private val hourOnlyWithMeridiemRegex = Regex("""(\d{1,2})\s*$MERIDIEM_PATTERN""")
         private val timeWithMinutesRegex = Regex("""(\d{1,2}):(\d{2})""")
         private val oclockRegex = Regex("""(\d{1,2})\s*o'?clock""")
 
+        private val preTimeLabelRegex = Regex(
+            """\b(?:remind me(?: about)?|remember to|wake me up to|wake me to)\s+(.+)$""",
+            RegexOption.IGNORE_CASE
+        )
         // "to" catches "remind me at 7 PM to call my friend"
         private val labelRegex = Regex(
             """(?:for|to|called|named|labeled)\s+(.+)$""",
+            RegexOption.IGNORE_CASE
+        )
+        private val trailingDayWordsRegex = Regex(
+            """\b(today|tonight|tomorrow|this morning|this evening|this afternoon)\b""",
+            RegexOption.IGNORE_CASE
+        )
+        private val trailingPreTimeMarkerRegex = Regex(
+            """\b(at|for|on)\s*$""",
             RegexOption.IGNORE_CASE
         )
     }
