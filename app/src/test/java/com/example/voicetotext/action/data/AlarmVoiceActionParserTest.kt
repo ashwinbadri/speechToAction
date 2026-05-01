@@ -121,6 +121,33 @@ class AlarmVoiceActionParserTest {
         result as VoiceAction.Unknown
     }
 
+    // --- Reminder-style phrasing ---
+
+    @Test
+    fun `parse handles remind me at time phrasing`() {
+        val result = runBlocking { parser.parse("Remind me at 7 PM to call my friend") }
+        result as VoiceAction.SetAlarm
+        assertEquals(19, result.hour)
+        assertEquals(0, result.minute)
+        assertEquals("call my friend", result.label)
+    }
+
+    @Test
+    fun `parse handles set a reminder phrasing with specific time`() {
+        val result = runBlocking { parser.parse("Set a reminder to do task at 7 PM today to call my friend") }
+        result as VoiceAction.SetAlarm
+        assertEquals(19, result.hour)
+        assertEquals(0, result.minute)
+    }
+
+    @Test
+    fun `parse handles remember to phrasing`() {
+        val result = runBlocking { parser.parse("Remember to take medicine at 8 AM") }
+        result as VoiceAction.SetAlarm
+        assertEquals(8, result.hour)
+        assertEquals(0, result.minute)
+    }
+
     // --- Timezone conversion ---
 
     @Test

@@ -69,7 +69,8 @@ Schema:
 Rules:
 - SET_TIMER: user says "set a timer", "start a countdown", "remind me in X minutes", etc.
   Set duration_seconds to the total seconds. Set hour, minute, and timezone to null.
-- SET_ALARM: user says "set an alarm", "wake me up at", "alarm for X AM/PM", etc.
+- SET_ALARM: user says "set an alarm", "wake me up at", "alarm for X AM/PM", "remind me at X",
+  "set a reminder for X PM", "remember to do Y at Z", etc. Any request anchored to a clock time.
   Set hour (0–23, 24-hour format) and minute (0–59). Set duration_seconds to null.
   Examples: "7:30 AM" → hour=7, minute=30. "9 PM" → hour=21, minute=0. "midnight" → hour=0, minute=0. "noon" → hour=12, minute=0.
 - timezone: if the user mentions a timezone, output its IANA zone ID (e.g., "America/New_York", "Europe/London", "Asia/Kolkata"). Use null if no timezone is mentioned.

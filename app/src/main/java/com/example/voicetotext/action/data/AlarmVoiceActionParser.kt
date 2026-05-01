@@ -104,8 +104,12 @@ class AlarmVoiceActionParser : VoiceActionParser {
     }
 
     companion object {
-        private val alarmKeywordRegex = Regex("""\b(alarm|wake me up|wake up)\b""")
-        private val alarmExplicitKeywordRegex = Regex("""\b(alarm|set an alarm|set alarm)\b""")
+        private val alarmKeywordRegex = Regex(
+            """\b(alarm|wake me up|wake up|remind me|reminder|remember to|set a reminder|set reminder)\b"""
+        )
+        private val alarmExplicitKeywordRegex = Regex(
+            """\b(alarm|set an alarm|set alarm|reminder|set a reminder)\b"""
+        )
 
         private val noonRegex = Regex("""\bnoon\b""")
         private val midnightRegex = Regex("""\bmidnight\b""")
@@ -115,8 +119,9 @@ class AlarmVoiceActionParser : VoiceActionParser {
         private val timeWithMinutesRegex = Regex("""(\d{1,2}):(\d{2})""")
         private val oclockRegex = Regex("""(\d{1,2})\s*o'?clock""")
 
+        // "to" catches "remind me at 7 PM to call my friend"
         private val labelRegex = Regex(
-            """(?:for|called|named|labeled)\s+(.+)$""",
+            """(?:for|to|called|named|labeled)\s+(.+)$""",
             RegexOption.IGNORE_CASE
         )
     }
