@@ -1,11 +1,13 @@
 package com.example.voicetotext.di
 
 import android.content.Context
+import com.example.voicetotext.action.data.AlarmVoiceActionParser
 import com.example.voicetotext.action.data.AndroidVoiceActionExecutor
 import com.example.voicetotext.action.data.ClockVoiceActionParser
 import com.example.voicetotext.action.data.LlmVoiceActionParser
 import com.example.voicetotext.action.data.MlKitPromptModel
 import com.example.voicetotext.action.data.OnDevicePromptModel
+import com.example.voicetotext.action.data.TimerVoiceActionParser
 import com.example.voicetotext.action.domain.VoiceActionExecutor
 import com.example.voicetotext.action.domain.VoiceActionParser
 import com.example.voicetotext.speech.data.AndroidSpeechRecognizer
@@ -27,8 +29,24 @@ object AppModule {
 
     @Provides
     @Singleton
+    @TimerParser
+    fun provideTimerParser(): VoiceActionParser = TimerVoiceActionParser()
+
+    @Provides
+    @Singleton
+    @AlarmParser
+    fun provideAlarmParser(): VoiceActionParser = AlarmVoiceActionParser()
+
+    @Provides
+    @Singleton
     @FallbackParser
-    fun provideFallbackParser(): VoiceActionParser = ClockVoiceActionParser()
+    fun provideFallbackParser(
+        @TimerParser timerParser: VoiceActionParser,
+        @AlarmParser alarmParser: VoiceActionParser
+    ): VoiceActionParser = ClockVoiceActionParser(
+        timerParser = timerParser,
+        alarmParser = alarmParser
+    )
 
     @Provides
     @Singleton
