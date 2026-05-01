@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.voicetotext.action.domain.VoiceAction
 import com.example.voicetotext.action.domain.VoiceActionParser
+import com.example.voicetotext.core.logging.AppLogger
 import com.example.voicetotext.speech.domain.SpeechRecognitionEvent
 import com.example.voicetotext.speech.domain.SpeechRecognizer
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -17,16 +18,22 @@ class ReminderParserViewModel(
     private val speechRecognizer: SpeechRecognizer
 ) : ViewModel() {
 
+    companion object {
+        private const val TAG = "VoiceActionFlow"
+    }
+
     private val _uiState = MutableStateFlow(
         ReminderParserUiState(outputJson = VoiceAction.empty().toJson())
     )
     val uiState: StateFlow<ReminderParserUiState> = _uiState.asStateFlow()
 
     init {
+        AppLogger.d(TAG, "ViewModel initialized")
         speechRecognizer.setListener(::onSpeechRecognitionEvent)
     }
 
     fun onMicrophonePermissionUpdated(isGranted: Boolean) {
+        AppLogger.d(TAG, "Microphone permission updated: granted=$isGranted")
         _uiState.update { currentState ->
             currentState.copy(
                 hasMicrophonePermission = isGranted,
@@ -49,7 +56,12 @@ class ReminderParserViewModel(
     }
 
     fun onMicTapped() {
+        AppLogger.d(
+            TAG,
+            "Mic tapped permission=${_uiState.value.hasMicrophonePermission} mode=${_uiState.value.mode}"
+        )
         if (!_uiState.value.hasMicrophonePermission || _uiState.value.mode != VoiceActionMode.Idle) {
+            AppLogger.d(TAG, "Ignoring mic tap because flow is not ready")
             return
         }
 
@@ -60,12 +72,14 @@ class ReminderParserViewModel(
         if (!_uiState.value.hasMicrophonePermission) return
 
         val transcript = _uiState.value.transcript
+        AppLogger.d(TAG, "Manual action resolve requested transcript=$transcript")
         parseTranscript(transcript, setModeToProcessing = false)
     }
 
     fun onRunActionClicked() {
         if (!_uiState.value.hasMicrophonePermission) return
 
+        AppLogger.d(TAG, "Run action clicked")
         _uiState.update { currentState ->
             currentState.copy(
                 resolvedActionTitle = "Ready to run timer",
@@ -75,6 +89,7 @@ class ReminderParserViewModel(
     }
 
     fun onResetClicked() {
+        AppLogger.d(TAG, "Reset clicked")
         speechRecognizer.stopListening()
         _uiState.value = ReminderParserUiState(
             hasMicrophonePermission = _uiState.value.hasMicrophonePermission,
@@ -93,6 +108,7 @@ class ReminderParserViewModel(
     }
 
     private fun onSpeechRecognitionEvent(event: SpeechRecognitionEvent) {
+        AppLogger.d(TAG, "Speech event received: ${event.javaClass.simpleName}")
         when (event) {
             SpeechRecognitionEvent.Ready -> {
                 _uiState.update { currentState ->
@@ -115,12 +131,14 @@ class ReminderParserViewModel(
             }
 
             is SpeechRecognitionEvent.PartialResult -> {
+                AppLogger.d(TAG, "Partial transcript=${event.transcript}")
                 _uiState.update { currentState ->
                     currentState.copy(transcript = event.transcript)
                 }
             }
 
             is SpeechRecognitionEvent.FinalResult -> {
+                AppLogger.d(TAG, "Final transcript=${event.transcript}")
                 _uiState.update { currentState ->
                     currentState.copy(
                         transcript = event.transcript,
@@ -133,6 +151,7 @@ class ReminderParserViewModel(
             }
 
             is SpeechRecognitionEvent.Error -> {
+                AppLogger.w(TAG, "Speech error=${event.message}")
                 _uiState.update { currentState ->
                     currentState.copy(
                         mode = VoiceActionMode.Idle,
@@ -149,7 +168,15 @@ class ReminderParserViewModel(
         setModeToProcessing: Boolean
     ) {
         viewModelScope.launch {
+            AppLogger.d(
+                TAG,
+                "Parsing transcript modeToProcessing=$setModeToProcessing transcript=$transcript"
+            )
             val parsedAction = parser.parse(transcript)
+            AppLogger.d(
+                TAG,
+                "Parsed action=${parsedAction.javaClass.simpleName} json=${parsedAction.toJson()}"
+            )
             _uiState.update { currentState ->
                 currentState.copy(
                     mode = if (setModeToProcessing) VoiceActionMode.Processing else VoiceActionMode.Idle,

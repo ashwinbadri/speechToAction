@@ -46,6 +46,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
+import com.example.voicetotext.action.data.PromptModelStatus
 import com.example.voicetotext.action.domain.VoiceAction
 import com.example.voicetotext.action.domain.VoiceActionParser
 import com.example.voicetotext.speech.domain.SpeechRecognizer
@@ -55,6 +56,7 @@ import com.example.voicetotext.ui.theme.VoiceToTextTheme
 fun ReminderParserRoute(
     parser: VoiceActionParser,
     speechRecognizer: SpeechRecognizer,
+    modelStatus: PromptModelStatus,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -85,6 +87,7 @@ fun ReminderParserRoute(
 
     ReminderParserScreen(
         uiState = uiState,
+        modelStatus = modelStatus,
         onMicTapped = viewModel::onMicTapped,
         onRequestMicrophonePermission = {
             microphonePermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
@@ -99,6 +102,7 @@ fun ReminderParserRoute(
 @Composable
 fun ReminderParserScreen(
     uiState: ReminderParserUiState,
+    modelStatus: PromptModelStatus,
     onMicTapped: () -> Unit,
     onRequestMicrophonePermission: () -> Unit,
     onActionResolved: () -> Unit,
@@ -127,6 +131,8 @@ fun ReminderParserScreen(
                         style = MaterialTheme.typography.bodyLarge,
                         color = Color(0xFF4C4C4C)
                     )
+
+                    ModelStatusCard(status = modelStatus)
 
                     VoiceCaptureCard(
                         hasMicrophonePermission = uiState.hasMicrophonePermission,
@@ -170,6 +176,45 @@ fun ReminderParserScreen(
                     DebugCard(output = uiState.outputJson)
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun ModelStatusCard(status: PromptModelStatus) {
+    val title = when (status) {
+        PromptModelStatus.Checking -> "Model: Checking device readiness"
+        PromptModelStatus.Downloading -> "Model: Downloading Gemini Nano"
+        PromptModelStatus.Ready -> "Model: Ready on-device"
+        PromptModelStatus.Unavailable -> "Model: Unavailable, using fallback"
+    }
+    val subtitle = when (status) {
+        PromptModelStatus.Checking -> "We’re checking whether on-device prompting is ready on this device."
+        PromptModelStatus.Downloading -> "The app can still run with the fallback parser while the model downloads."
+        PromptModelStatus.Ready -> "Prompt resolution is ready to parse voice actions locally on this device."
+        PromptModelStatus.Unavailable -> "This device is using the deterministic timer parser until Gemini Nano is available."
+    }
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(containerColor = Color(0xFFECFDF3))
+    ) {
+        Column(
+            modifier = Modifier.padding(20.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold,
+                color = Color(0xFF05603A)
+            )
+            Text(
+                text = subtitle,
+                style = MaterialTheme.typography.bodyMedium,
+                color = Color(0xFF344054)
+            )
         }
     }
 }
@@ -432,6 +477,7 @@ private fun ReminderParserScreenPreview() {
                     confidence = 1.0
                 ).toJson()
             ),
+            modelStatus = PromptModelStatus.Ready,
             onMicTapped = {},
             onRequestMicrophonePermission = {},
             onActionResolved = {},

@@ -6,21 +6,29 @@ import android.os.Bundle
 import android.speech.RecognitionListener
 import android.speech.RecognizerIntent
 import android.speech.SpeechRecognizer
+import com.example.voicetotext.core.logging.AppLogger
 import com.example.voicetotext.speech.domain.SpeechRecognitionEvent
 
 class AndroidSpeechRecognizer(
     private val context: Context
 ) : com.example.voicetotext.speech.domain.SpeechRecognizer {
 
+    companion object {
+        private const val TAG = "VoiceActionSpeech"
+    }
+
     private var listener: ((SpeechRecognitionEvent) -> Unit)? = null
 
     override fun setListener(listener: (SpeechRecognitionEvent) -> Unit) {
+        AppLogger.d(TAG, "Speech event listener attached")
         this.listener = listener
     }
 
     override fun startListening() {
+        AppLogger.d(TAG, "startListening requested")
         val recognizer = speechRecognizer
         if (recognizer == null) {
+            AppLogger.w(TAG, "Speech recognition unavailable on this device")
             listener?.invoke(
                 SpeechRecognitionEvent.Error("Speech recognition is not available on this device.")
             )
@@ -36,22 +44,27 @@ class AndroidSpeechRecognizer(
                 putExtra(RecognizerIntent.EXTRA_CALLING_PACKAGE, context.packageName)
             }
         )
+        AppLogger.d(TAG, "Recognizer intent dispatched")
     }
 
     override fun stopListening() {
+        AppLogger.d(TAG, "stopListening requested")
         speechRecognizer?.stopListening()
     }
 
     override fun destroy() {
+        AppLogger.d(TAG, "destroy requested")
         speechRecognizer?.destroy()
     }
 
     private val recognitionListener = object : RecognitionListener {
         override fun onReadyForSpeech(params: Bundle?) {
+            AppLogger.d(TAG, "onReadyForSpeech")
             listener?.invoke(SpeechRecognitionEvent.Ready)
         }
 
         override fun onBeginningOfSpeech() {
+            AppLogger.d(TAG, "onBeginningOfSpeech")
             listener?.invoke(SpeechRecognitionEvent.Listening)
         }
 
@@ -59,7 +72,9 @@ class AndroidSpeechRecognizer(
 
         override fun onBufferReceived(buffer: ByteArray?) = Unit
 
-        override fun onEndOfSpeech() = Unit
+        override fun onEndOfSpeech() {
+            AppLogger.d(TAG, "onEndOfSpeech")
+        }
 
         override fun onError(error: Int) {
             val message = when (error) {
@@ -74,16 +89,19 @@ class AndroidSpeechRecognizer(
                 SpeechRecognizer.ERROR_SPEECH_TIMEOUT -> "No speech detected."
                 else -> "Speech recognition failed."
             }
+            AppLogger.w(TAG, "onError code=$error message=$message")
             listener?.invoke(SpeechRecognitionEvent.Error(message))
         }
 
         override fun onResults(results: Bundle?) {
             val transcript = results.firstTranscript() ?: return
+            AppLogger.d(TAG, "onResults transcript=$transcript")
             listener?.invoke(SpeechRecognitionEvent.FinalResult(transcript))
         }
 
         override fun onPartialResults(partialResults: Bundle?) {
             val transcript = partialResults.firstTranscript() ?: return
+            AppLogger.d(TAG, "onPartialResults transcript=$transcript")
             listener?.invoke(SpeechRecognitionEvent.PartialResult(transcript))
         }
 
@@ -100,10 +118,12 @@ class AndroidSpeechRecognizer(
 
     private val speechRecognizer: SpeechRecognizer? =
         if (SpeechRecognizer.isRecognitionAvailable(context)) {
+            AppLogger.d(TAG, "Speech recognition available")
             SpeechRecognizer.createSpeechRecognizer(context).apply {
                 setRecognitionListener(recognitionListener)
             }
         } else {
+            AppLogger.w(TAG, "Speech recognition is not available during initialization")
             null
         }
 }
