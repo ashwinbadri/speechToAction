@@ -49,12 +49,14 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.Canvas
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -185,8 +187,14 @@ fun VoiceActionScreen(
                         isReady = canRun,
                         executionResult = uiState.executionResult
                     )
+                    FollowUpCard(
+                        lastAction = uiState.lastAction,
+                        executionResult = uiState.executionResult,
+                        onResetClicked = onResetClicked
+                    )
                     ActionButtons(
                         canRun = canRun,
+                        executionResult = uiState.executionResult,
                         onRunActionClicked = onRunActionClicked,
                         onResetClicked = onResetClicked
                     )
@@ -382,6 +390,24 @@ private fun MicHeroButton(
         ),
         label = "pulseAlpha"
     )
+    val orbitSweep by pulseTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 360f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 1800),
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "orbitSweep"
+    )
+    val waveformPhase by pulseTransition.animateFloat(
+        initialValue = 0.82f,
+        targetValue = 1.18f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 520),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "waveformPhase"
+    )
 
     val heroColor = when (mode) {
         VoiceActionMode.Idle -> Coral
@@ -394,6 +420,34 @@ private fun MicHeroButton(
             .size(210.dp),
         contentAlignment = Alignment.Center
     ) {
+        if (mode == VoiceActionMode.Listening) {
+            Canvas(
+                modifier = Modifier
+                    .size(204.dp)
+                    .alpha(0.75f)
+            ) {
+                drawArc(
+                    color = Color.White.copy(alpha = 0.45f),
+                    startAngle = orbitSweep,
+                    sweepAngle = 110f,
+                    useCenter = false,
+                    style = androidx.compose.ui.graphics.drawscope.Stroke(
+                        width = 10.dp.toPx(),
+                        cap = StrokeCap.Round
+                    )
+                )
+                drawArc(
+                    color = Color.White.copy(alpha = 0.2f),
+                    startAngle = orbitSweep + 170f,
+                    sweepAngle = 70f,
+                    useCenter = false,
+                    style = androidx.compose.ui.graphics.drawscope.Stroke(
+                        width = 6.dp.toPx(),
+                        cap = StrokeCap.Round
+                    )
+                )
+            }
+        }
         Box(
             modifier = Modifier
                 .size(188.dp)
@@ -412,19 +466,50 @@ private fun MicHeroButton(
             shadowElevation = 12.dp
         ) {
             Box(contentAlignment = Alignment.Center) {
-                Text(
-                    text = when (mode) {
-                        VoiceActionMode.Idle -> "MIC"
-                        VoiceActionMode.Listening -> "LIVE"
-                        VoiceActionMode.Processing -> "AI"
-                    },
-                    style = MaterialTheme.typography.headlineSmall,
-                    fontWeight = FontWeight.Black,
-                    color = Color.White
-                )
+                if (mode == VoiceActionMode.Listening) {
+                    RecordingWaveform(phase = waveformPhase)
+                } else {
+                    Text(
+                        text = when (mode) {
+                            VoiceActionMode.Idle -> "MIC"
+                            VoiceActionMode.Listening -> "LIVE"
+                            VoiceActionMode.Processing -> "AI"
+                        },
+                        style = MaterialTheme.typography.headlineSmall,
+                        fontWeight = FontWeight.Black,
+                        color = Color.White
+                    )
+                }
             }
         }
     }
+}
+
+@Composable
+private fun RecordingWaveform(phase: Float) {
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        WaveBar(height = 28.dp, scale = phase * 0.92f)
+        WaveBar(height = 46.dp, scale = phase)
+        WaveBar(height = 34.dp, scale = phase * 0.96f)
+        WaveBar(height = 22.dp, scale = phase * 0.88f)
+    }
+}
+
+@Composable
+private fun WaveBar(
+    height: androidx.compose.ui.unit.Dp,
+    scale: Float
+) {
+    Box(
+        modifier = Modifier
+            .size(width = 10.dp, height = height)
+            .scale(scaleX = 1f, scaleY = scale)
+            .clip(RoundedCornerShape(100))
+            .background(Color.White)
+    )
 }
 
 @Composable
@@ -566,8 +651,97 @@ private fun ActionPreviewCard(
 }
 
 @Composable
+private fun FollowUpCard(
+    lastAction: VoiceAction?,
+    executionResult: ExecutionResult?,
+    onResetClicked: () -> Unit
+) {
+    if (executionResult == null || lastAction == null || lastAction is VoiceAction.Unknown) return
+
+    val title = when (executionResult) {
+        is ExecutionResult.Success -> "Ready for the next action?"
+        is ExecutionResult.Failure -> "Try a cleaner follow-up"
+    }
+    val subtitle = when (executionResult) {
+        is ExecutionResult.Success -> when (lastAction) {
+            is VoiceAction.SetTimer -> "Your timer was handed off to Clock. You can quickly set another timer or switch to an alarm."
+            is VoiceAction.SetAlarm -> "Your alarm was handed off to Clock. You can set another alarm or jump back to a timer."
+            is VoiceAction.Unknown -> ""
+        }
+        is ExecutionResult.Failure -> "The action didn’t launch, but your parsed request is still here. Reset and try the phrase again or simplify the wording."
+    }
+    val suggestions = when (executionResult) {
+        is ExecutionResult.Success -> when (lastAction) {
+            is VoiceAction.SetTimer -> listOf(
+                "Try “set another timer for 5 minutes for tea.”",
+                "Try “set an alarm for 7 AM tomorrow.”"
+            )
+            is VoiceAction.SetAlarm -> listOf(
+                "Try “set another alarm for 6:30 AM.”",
+                "Try “set a timer for 20 minutes for pasta.”"
+            )
+            is VoiceAction.Unknown -> emptyList()
+        }
+        is ExecutionResult.Failure -> listOf(
+            "Keep the action phrase short and specific.",
+            "Include a clear time like “10 minutes” or “7 AM”."
+        )
+    }
+    val cardColor = when (executionResult) {
+        is ExecutionResult.Success -> Color(0xFFF7FDF9)
+        is ExecutionResult.Failure -> Color(0xFFFFFBFA)
+    }
+    val accent = when (executionResult) {
+        is ExecutionResult.Success -> SageText
+        is ExecutionResult.Failure -> RoseText
+    }
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(containerColor = cardColor)
+    ) {
+        Column(
+            modifier = Modifier.padding(20.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = accent
+            )
+            Text(
+                text = subtitle,
+                style = MaterialTheme.typography.bodyMedium,
+                color = Slate
+            )
+            suggestions.forEach { suggestion ->
+                Text(
+                    text = "• $suggestion",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = Ink
+                )
+            }
+            Button(
+                onClick = onResetClicked,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(
+                    text = when (executionResult) {
+                        is ExecutionResult.Success -> "Set another action"
+                        is ExecutionResult.Failure -> "Try again"
+                    }
+                )
+            }
+        }
+    }
+}
+
+@Composable
 private fun ActionButtons(
     canRun: Boolean,
+    executionResult: ExecutionResult?,
     onRunActionClicked: () -> Unit,
     onResetClicked: () -> Unit
 ) {
@@ -577,16 +751,16 @@ private fun ActionButtons(
     ) {
         Button(
             onClick = onRunActionClicked,
-            enabled = canRun,
+            enabled = canRun && executionResult == null,
             modifier = Modifier.weight(1f)
         ) {
-            Text("Run Action")
+            Text(if (executionResult == null) "Run Action" else "Action Sent")
         }
         OutlinedButton(
             onClick = onResetClicked,
             modifier = Modifier.weight(1f)
         ) {
-            Text("Reset")
+            Text(if (executionResult == null) "Reset" else "Start Over")
         }
     }
 }
