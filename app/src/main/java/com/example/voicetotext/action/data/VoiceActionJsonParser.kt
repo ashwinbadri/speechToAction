@@ -27,9 +27,15 @@ object VoiceActionJsonParser {
             }
 
             "SET_ALARM" -> {
-                val hour = hourRegex.find(normalized)?.groupValues?.get(1)?.toIntOrNull() ?: return null
+                val rawHour = hourRegex.find(normalized)?.groupValues?.get(1)?.toIntOrNull() ?: return null
                 val minute = minuteRegex.find(normalized)?.groupValues?.get(1)?.toIntOrNull() ?: 0
-                if (hour !in 0..23 || minute !in 0..59) return null
+                if (rawHour !in 0..23 || minute !in 0..59) return null
+
+                // Convert 12-hour LLM output to 24-hour using the meridiem field.
+                // Small on-device models often output hour=7 for "7 PM" despite 24h instructions,
+                // so we do the conversion in code rather than trusting the model.
+                val meridiem = meridiemRegex.find(normalized)?.groupValues?.get(1)
+                val hour = applyMeridiem(rawHour, meridiem)
 
                 val timezoneStr = timezoneRegex.find(normalized)?.groupValues?.get(1)
                 val sourceZone = timezoneStr?.let { AlarmTimeZoneConverter.resolveZoneId(it) }
@@ -66,10 +72,20 @@ object VoiceActionJsonParser {
         }
     }
 
+    private fun applyMeridiem(hour: Int, meridiem: String?): Int {
+        if (meridiem == null || hour > 12) return hour
+        return when (meridiem.uppercase()) {
+            "PM" -> if (hour == 12) 12 else hour + 12
+            "AM" -> if (hour == 12) 0 else hour
+            else -> hour
+        }
+    }
+
     private val intentRegex = Regex(""""intent"\s*:\s*"([^"]+)"""")
     private val durationRegex = Regex(""""duration_seconds"\s*:\s*(\d+)""")
     private val hourRegex = Regex(""""hour"\s*:\s*(\d+)""")
     private val minuteRegex = Regex(""""minute"\s*:\s*(\d+)""")
+    private val meridiemRegex = Regex(""""meridiem"\s*:\s*"(AM|PM)"""", RegexOption.IGNORE_CASE)
     private val timezoneRegex = Regex(""""timezone"\s*:\s*"([^"]+)"""")
     private val labelRegex = Regex(""""label"\s*:\s*(null|"([^"\\]|\\.)*")""")
     private val confidenceRegex = Regex(""""confidence"\s*:\s*([0-9]+(?:\.[0-9]+)?)""")
