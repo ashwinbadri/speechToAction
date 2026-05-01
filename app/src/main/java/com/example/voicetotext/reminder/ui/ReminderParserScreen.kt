@@ -42,37 +42,18 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.lifecycle.viewmodel.compose.viewModel
-import androidx.lifecycle.viewmodel.initializer
-import androidx.lifecycle.viewmodel.viewModelFactory
 import com.example.voicetotext.action.data.PromptModelStatus
 import com.example.voicetotext.action.domain.VoiceAction
-import com.example.voicetotext.action.domain.VoiceActionParser
-import com.example.voicetotext.speech.domain.SpeechRecognizer
 import com.example.voicetotext.ui.theme.VoiceToTextTheme
 
 @Composable
-fun ReminderParserRoute(
-    parser: VoiceActionParser,
-    executor: com.example.voicetotext.action.domain.VoiceActionExecutor,
-    speechRecognizer: SpeechRecognizer,
-    modelStatus: PromptModelStatus,
-    modifier: Modifier = Modifier
-) {
+fun ReminderParserRoute(modifier: Modifier = Modifier) {
     val context = LocalContext.current
-    val viewModel: ReminderParserViewModel = viewModel(
-        factory = viewModelFactory {
-            initializer {
-                ReminderParserViewModel(
-                    parser = parser,
-                    executor = executor,
-                    speechRecognizer = speechRecognizer
-                )
-            }
-        }
-    )
+    val viewModel: ReminderParserViewModel = hiltViewModel()
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val modelStatus by viewModel.promptModelStatus.collectAsStateWithLifecycle()
     val microphonePermissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
     ) { isGranted ->

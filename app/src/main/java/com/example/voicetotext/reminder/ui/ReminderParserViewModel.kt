@@ -2,27 +2,35 @@ package com.example.voicetotext.reminder.ui
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.voicetotext.action.data.OnDevicePromptModel
+import com.example.voicetotext.action.data.PromptModelStatus
 import com.example.voicetotext.action.domain.VoiceAction
 import com.example.voicetotext.action.domain.VoiceActionExecutor
 import com.example.voicetotext.action.domain.VoiceActionParser
 import com.example.voicetotext.core.logging.AppLogger
 import com.example.voicetotext.speech.domain.SpeechRecognitionEvent
 import com.example.voicetotext.speech.domain.SpeechRecognizer
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
-class ReminderParserViewModel(
+@HiltViewModel
+class ReminderParserViewModel @Inject constructor(
     private val parser: VoiceActionParser,
     private val executor: VoiceActionExecutor,
-    private val speechRecognizer: SpeechRecognizer
+    private val speechRecognizer: SpeechRecognizer,
+    private val promptModel: OnDevicePromptModel
 ) : ViewModel() {
 
     companion object {
         private const val TAG = "VoiceActionFlow"
     }
+
+    val promptModelStatus: StateFlow<PromptModelStatus> = promptModel.status
 
     private val _uiState = MutableStateFlow(
         ReminderParserUiState(outputJson = VoiceAction.empty().toJson())
@@ -31,6 +39,7 @@ class ReminderParserViewModel(
 
     init {
         AppLogger.d(TAG, "ViewModel initialized")
+        viewModelScope.launch { promptModel.prefetch() }
         speechRecognizer.setListener(::onSpeechRecognitionEvent)
     }
 

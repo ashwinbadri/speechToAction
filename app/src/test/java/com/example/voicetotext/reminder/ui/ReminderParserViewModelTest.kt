@@ -1,9 +1,13 @@
 package com.example.voicetotext.reminder.ui
 
+import com.example.voicetotext.action.data.OnDevicePromptModel
+import com.example.voicetotext.action.data.PromptModelStatus
 import com.example.voicetotext.action.domain.ExecutionResult
 import com.example.voicetotext.action.domain.VoiceAction
 import com.example.voicetotext.action.domain.VoiceActionExecutor
 import com.example.voicetotext.action.domain.VoiceActionParser
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import com.example.voicetotext.speech.data.FakeSpeechRecognizer
 import com.example.voicetotext.speech.domain.SpeechRecognitionEvent
 import kotlinx.coroutines.Dispatchers
@@ -32,7 +36,8 @@ class ReminderParserViewModelTest {
         val viewModel = ReminderParserViewModel(
             parser = FakeVoiceActionParser(),
             executor = FakeVoiceActionExecutor(),
-            speechRecognizer = FakeSpeechRecognizer()
+            speechRecognizer = FakeSpeechRecognizer(),
+            promptModel = FakeOnDevicePromptModel()
         )
 
         viewModel.onMicrophonePermissionUpdated(true)
@@ -45,7 +50,8 @@ class ReminderParserViewModelTest {
         val viewModel = ReminderParserViewModel(
             parser = FakeVoiceActionParser(),
             executor = FakeVoiceActionExecutor(),
-            speechRecognizer = FakeSpeechRecognizer()
+            speechRecognizer = FakeSpeechRecognizer(),
+            promptModel = FakeOnDevicePromptModel()
         )
         viewModel.onMicrophonePermissionUpdated(true)
 
@@ -60,7 +66,8 @@ class ReminderParserViewModelTest {
         val viewModel = ReminderParserViewModel(
             parser = FakeVoiceActionParser(),
             executor = FakeVoiceActionExecutor(),
-            speechRecognizer = FakeSpeechRecognizer()
+            speechRecognizer = FakeSpeechRecognizer(),
+            promptModel = FakeOnDevicePromptModel()
         )
 
         viewModel.onMicTapped()
@@ -80,7 +87,8 @@ class ReminderParserViewModelTest {
         val viewModel = ReminderParserViewModel(
             parser = FakeVoiceActionParser(result = parserResult),
             executor = FakeVoiceActionExecutor(),
-            speechRecognizer = speechRecognizer
+            speechRecognizer = speechRecognizer,
+            promptModel = FakeOnDevicePromptModel()
         )
         viewModel.onMicrophonePermissionUpdated(true)
 
@@ -101,7 +109,8 @@ class ReminderParserViewModelTest {
         val viewModel = ReminderParserViewModel(
             parser = FakeVoiceActionParser(),
             executor = FakeVoiceActionExecutor(),
-            speechRecognizer = FakeSpeechRecognizer()
+            speechRecognizer = FakeSpeechRecognizer(),
+            promptModel = FakeOnDevicePromptModel()
         )
         viewModel.onMicrophonePermissionUpdated(true)
 
@@ -120,7 +129,8 @@ class ReminderParserViewModelTest {
         val viewModel = ReminderParserViewModel(
             parser = FakeVoiceActionParser(),
             executor = FakeVoiceActionExecutor(),
-            speechRecognizer = speechRecognizer
+            speechRecognizer = speechRecognizer,
+            promptModel = FakeOnDevicePromptModel()
         )
 
         speechRecognizer.emit(SpeechRecognitionEvent.PartialResult("set a timer"))
@@ -136,6 +146,14 @@ class ReminderParserViewModelTest {
 
     private class FakeVoiceActionExecutor : VoiceActionExecutor {
         override fun execute(action: VoiceAction): ExecutionResult = ExecutionResult.Success
+    }
+
+    private class FakeOnDevicePromptModel : OnDevicePromptModel {
+        override val status: StateFlow<PromptModelStatus> = MutableStateFlow(PromptModelStatus.Ready)
+        override suspend fun isAvailable(): Boolean = false
+        override suspend fun prefetch() {}
+        override suspend fun generate(prompt: String): String? = null
+        override fun close() {}
     }
 }
 

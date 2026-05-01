@@ -1,6 +1,9 @@
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
+    // hilt and ksp plugins re-enable once a Hilt release supports AGP 9.x
+    // alias(libs.plugins.hilt)
+    // alias(libs.plugins.ksp)
 }
 
 android {
@@ -52,6 +55,9 @@ dependencies {
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.compose.material3)
     implementation("com.google.mlkit:genai-prompt:1.0.0-alpha1")
+    implementation(libs.hilt.android)
+    implementation(libs.androidx.hilt.navigation.compose)
+    // ksp(libs.hilt.compiler)  — re-enable with the hilt plugin above
     testImplementation(libs.junit)
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.10.2")
     androidTestImplementation(libs.androidx.junit)
