@@ -22,8 +22,12 @@ internal object AlarmTimeZoneConverter {
         return try { ZoneId.of(raw.trim()) } catch (_: Exception) { null }
     }
 
-    fun convertToDeviceLocal(hour: Int, minute: Int, sourceZone: ZoneId): Pair<Int, Int> {
-        val deviceZone = ZoneId.systemDefault()
+    fun convertToDeviceLocal(
+        hour: Int,
+        minute: Int,
+        sourceZone: ZoneId,
+        deviceZone: ZoneId = ZoneId.systemDefault()
+    ): Pair<Int, Int> {
         if (sourceZone == deviceZone) return hour to minute
         val converted = ZonedDateTime
             .of(LocalDate.now(deviceZone), LocalTime.of(hour, minute), sourceZone)
