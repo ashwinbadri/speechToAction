@@ -5,35 +5,15 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import com.example.voicetotext.action.data.AlarmVoiceActionParser
-import com.example.voicetotext.action.data.AndroidVoiceActionExecutor
-import com.example.voicetotext.action.data.ClockVoiceActionParser
-import com.example.voicetotext.action.data.LlmVoiceActionParser
-import com.example.voicetotext.action.data.MlKitPromptModel
-import com.example.voicetotext.action.data.TimerVoiceActionParser
 import com.example.voicetotext.voiceaction.ui.VoiceActionRoute
-import com.example.voicetotext.speech.data.AndroidSpeechRecognizer
 import com.example.voicetotext.ui.theme.VoiceToTextTheme
+import dagger.hilt.android.AndroidEntryPoint
 
-// Manual wiring mirrors AppModule exactly.
-// Switch to @AndroidEntryPoint + hiltViewModel() once a Hilt release
-// supports AGP 9.x (BaseExtension was removed in AGP 9.0).
+@AndroidEntryPoint
 class MainActivity : ComponentActivity() {
 
-    private val promptModel by lazy { MlKitPromptModel() }
-    private val speechRecognizer by lazy { AndroidSpeechRecognizer(applicationContext) }
-    private val executor by lazy { AndroidVoiceActionExecutor(applicationContext) }
     private val isDebugBuild by lazy {
         (applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE) != 0
-    }
-    private val parser by lazy {
-        LlmVoiceActionParser(
-            promptModel = promptModel,
-            fallbackParser = ClockVoiceActionParser(
-                timerParser = TimerVoiceActionParser(),
-                alarmParser = AlarmVoiceActionParser()
-            )
-        )
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -41,20 +21,8 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             VoiceToTextTheme {
-                VoiceActionRoute(
-                    parser = parser,
-                    executor = executor,
-                    speechRecognizer = speechRecognizer,
-                    promptModel = promptModel,
-                    isDebug = isDebugBuild
-                )
+                VoiceActionRoute(isDebug = isDebugBuild)
             }
         }
-    }
-
-    override fun onDestroy() {
-        promptModel.close()
-        speechRecognizer.destroy()
-        super.onDestroy()
     }
 }

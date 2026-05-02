@@ -10,13 +10,16 @@ import com.example.voicetotext.action.domain.VoiceActionParser
 import com.example.voicetotext.core.logging.AppLogger
 import com.example.voicetotext.speech.domain.SpeechRecognitionEvent
 import com.example.voicetotext.speech.domain.SpeechRecognizer
+import dagger.hilt.android.lifecycle.HiltViewModel
+import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
-class VoiceActionViewModel(
+@HiltViewModel
+class VoiceActionViewModel @Inject constructor(
     private val parser: VoiceActionParser,
     private val executor: VoiceActionExecutor,
     private val speechRecognizer: SpeechRecognizer,

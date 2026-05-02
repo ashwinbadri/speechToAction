@@ -1,6 +1,7 @@
 package com.example.voicetotext
 
 import android.app.Application
+import dagger.hilt.android.HiltAndroidApp
 
-// @HiltAndroidApp — re-enable once Hilt supports AGP 9.x
+@HiltAndroidApp
 class VoiceToTextApplication : Application()

@@ -10,6 +10,7 @@ import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -17,10 +18,8 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
@@ -56,19 +55,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.compose.foundation.Canvas
 import androidx.core.content.ContextCompat
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.lifecycle.viewmodel.compose.viewModel
-import androidx.lifecycle.viewmodel.initializer
-import androidx.lifecycle.viewmodel.viewModelFactory
-import com.example.voicetotext.action.data.OnDevicePromptModel
 import com.example.voicetotext.action.data.PromptModelStatus
 import com.example.voicetotext.action.domain.ExecutionResult
 import com.example.voicetotext.action.domain.VoiceAction
-import com.example.voicetotext.action.domain.VoiceActionExecutor
-import com.example.voicetotext.action.domain.VoiceActionParser
-import com.example.voicetotext.speech.domain.SpeechRecognizer
 import com.example.voicetotext.ui.theme.VoiceToTextTheme
 
 private val AppBackground = Color(0xFFF5EFE5)
@@ -86,26 +78,11 @@ private val RoseText = Color(0xFFB42318)
 
 @Composable
 fun VoiceActionRoute(
-    parser: VoiceActionParser,
-    executor: VoiceActionExecutor,
-    speechRecognizer: SpeechRecognizer,
-    promptModel: OnDevicePromptModel,
     isDebug: Boolean,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
-    val viewModel: VoiceActionViewModel = viewModel(
-        factory = viewModelFactory {
-            initializer {
-                VoiceActionViewModel(
-                    parser = parser,
-                    executor = executor,
-                    speechRecognizer = speechRecognizer,
-                    promptModel = promptModel
-                )
-            }
-        }
-    )
+    val viewModel: VoiceActionViewModel = hiltViewModel()
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val modelStatus by viewModel.promptModelStatus.collectAsStateWithLifecycle()
     val microphonePermissionLauncher = rememberLauncherForActivityResult(
