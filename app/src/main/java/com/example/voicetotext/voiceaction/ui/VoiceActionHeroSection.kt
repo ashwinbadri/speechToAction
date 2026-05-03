@@ -102,34 +102,54 @@ internal fun StatusPill(
         PromptModelStatus.Unavailable -> Color(0xFFB45309)
         else -> SageText
     }
+    val note = when (status) {
+        PromptModelStatus.Unavailable -> if (isDebug) {
+            "Gemini Nano isn't available on this device, so the app is using its local fallback parser."
+        } else {
+            "Gemini Nano isn't available on this device. Voice actions still work with the built-in offline parser."
+        }
+        else -> null
+    }
 
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(18.dp),
         colors = CardDefaults.cardColors(containerColor = background)
     ) {
-        Row(
+        Column(
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
+            verticalArrangement = Arrangement.spacedBy(6.dp)
         ) {
-            Text(
-                text = label,
-                style = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.SemiBold,
-                color = accent
-            )
-            Text(
-                text = when (status) {
-                    PromptModelStatus.Checking -> "Checking"
-                    PromptModelStatus.Downloading -> "Downloading"
-                    PromptModelStatus.Ready -> "Ready"
-                    PromptModelStatus.Unavailable -> "Fallback"
-                },
-                style = MaterialTheme.typography.labelLarge,
-                fontWeight = FontWeight.SemiBold,
-                color = accent
-            )
+            Row(
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(
+                    text = label,
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.SemiBold,
+                    color = accent
+                )
+                Text(
+                    text = when (status) {
+                        PromptModelStatus.Checking -> "Checking"
+                        PromptModelStatus.Downloading -> "Downloading"
+                        PromptModelStatus.Ready -> "Ready"
+                        PromptModelStatus.Unavailable -> "Fallback"
+                    },
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.SemiBold,
+                    color = accent
+                )
+            }
+            if (note != null) {
+                Text(
+                    text = note,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = Ink.copy(alpha = 0.8f)
+                )
+            }
         }
     }
 }
