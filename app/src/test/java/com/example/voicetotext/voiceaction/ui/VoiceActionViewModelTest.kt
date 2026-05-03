@@ -138,6 +138,25 @@ class VoiceActionViewModelTest {
         assertEquals("set a timer", viewModel.uiState.value.transcript)
     }
 
+    @Test
+    fun `onAppBackgrounded stops listening and returns idle state`() {
+        val speechRecognizer = FakeSpeechRecognizer()
+        val viewModel = VoiceActionViewModel(
+            parser = FakeVoiceActionParser(),
+            executor = FakeVoiceActionExecutor(),
+            speechRecognizer = speechRecognizer,
+            promptModel = FakeOnDevicePromptModel()
+        )
+        viewModel.onMicrophonePermissionUpdated(true)
+        viewModel.onMicTapped()
+
+        viewModel.onAppBackgrounded()
+
+        assertEquals(VoiceActionMode.Idle, viewModel.uiState.value.mode)
+        assertEquals("", viewModel.uiState.value.transcript)
+        assertEquals(true, speechRecognizer.stopListeningCalled)
+    }
+
     private class FakeVoiceActionParser(
         private val result: VoiceAction = VoiceAction.empty()
     ) : VoiceActionParser {

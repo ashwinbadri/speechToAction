@@ -6,6 +6,8 @@ import com.example.voicetotext.speech.domain.SpeechRecognizer
 class FakeSpeechRecognizer : SpeechRecognizer {
 
     private var listener: ((SpeechRecognitionEvent) -> Unit)? = null
+    var stopListeningCalled: Boolean = false
+        private set
 
     override fun setListener(listener: (SpeechRecognitionEvent) -> Unit) {
         this.listener = listener
@@ -17,7 +19,7 @@ class FakeSpeechRecognizer : SpeechRecognizer {
     }
 
     override fun stopListening() {
-        // No-op in the fake implementation until the Android recognizer is wired in.
+        stopListeningCalled = true
     }
 
     override fun destroy() {

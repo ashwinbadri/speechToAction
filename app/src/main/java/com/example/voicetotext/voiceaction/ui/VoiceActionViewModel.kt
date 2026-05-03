@@ -118,6 +118,23 @@ class VoiceActionViewModel @Inject constructor(
         )
     }
 
+    fun onAppBackgrounded() {
+        AppLogger.d(TAG, "App backgrounded, stopping speech recognition")
+        speechRecognizer.stopListening()
+        _uiState.update { currentState ->
+            if (currentState.mode == VoiceActionMode.Listening) {
+                currentState.copy(
+                    mode = VoiceActionMode.Idle,
+                    resolvedActionTitle = "No action yet",
+                    resolvedActionSubtitle = "Tap the mic and say something like “set a timer for 10 minutes”.",
+                    transcript = if (currentState.transcript == "Listening…") "" else currentState.transcript
+                )
+            } else {
+                currentState
+            }
+        }
+    }
+
     private fun onSpeechRecognitionEvent(event: SpeechRecognitionEvent) {
         AppLogger.d(TAG, "Speech event received: ${event.javaClass.simpleName}")
         when (event) {
